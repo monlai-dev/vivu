@@ -4,10 +4,13 @@ import "github.com/google/uuid"
 
 type CheckIn struct {
 	BaseModel
-	UserID    uuid.UUID
+	AccountID uuid.UUID // Change from UserID
 	JourneyID uuid.UUID
 	POIID     uuid.UUID
 	Notes     string
 
-	Photos []Photo
+	Account Account `gorm:"foreignKey:AccountID"`
+	Journey Journey `gorm:"foreignKey:JourneyID"`
+	POI     POI     `gorm:"foreignKey:POIID"`
+	Photos  []Photo `gorm:"foreignKey:CheckInID"`
 }

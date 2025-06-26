@@ -5,10 +5,29 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/internal/models/db_models/poi_embedding.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/account_repository.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/poi_details_repository.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/poi_repository.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/province_repository.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/repo_err/poi_repo_err.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pkg/middleware/traceid.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pkg/utils/api_wrap.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pkg/utils/open_ai.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/infra/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/infra/postgres.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/infra/postgres.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/infra/postgres.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/account.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/activity.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/activity.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/checkin.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/checkin.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/district.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/district.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/journey.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/journey.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/photo.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/photo.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/poi_detail.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/poi_detail.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/pois.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/pois.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/tag.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/tag.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/response_models/empty.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/response_models/pois.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,6 +58,7 @@
   &quot;keyToString&quot;: {
     &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,

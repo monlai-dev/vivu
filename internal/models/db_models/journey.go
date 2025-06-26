@@ -2,18 +2,18 @@ package db_models
 
 import (
 	"github.com/google/uuid"
-	"time"
 )
 
 type Journey struct {
 	BaseModel
-	UserID      uuid.UUID
+	AccountID   uuid.UUID // Change from UserID
 	Title       string
-	StartDate   time.Time
-	EndDate     time.Time
+	StartDate   int64
+	EndDate     int64
 	IsShared    bool
 	IsCompleted bool
 
-	Days     []JourneyDay
-	CheckIns []CheckIn
+	Account  Account      `gorm:"foreignKey:AccountID"`
+	Days     []JourneyDay `gorm:"foreignKey:JourneyID"`
+	CheckIns []CheckIn    `gorm:"foreignKey:JourneyID"`
 }

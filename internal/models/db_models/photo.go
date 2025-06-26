@@ -6,4 +6,6 @@ type Photo struct {
 	BaseModel
 	CheckInID uuid.UUID
 	URL       string
+
+	CheckIn CheckIn `gorm:"foreignKey:CheckInID"`
 }

@@ -1,9 +1,7 @@
 package db_models
 
-type District struct {
+type Province struct {
 	BaseModel
-	Name     string
-	Province string
-
-	POIs []POI
+	Name string
+	POIs []POI `gorm:"foreignKey:ProvinceID"` // Explicit foreign key
 }

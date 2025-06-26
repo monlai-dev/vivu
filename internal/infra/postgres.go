@@ -7,13 +7,9 @@ import (
 	"os"
 )
 
-type PGDB struct {
-	*gorm.DB
-}
+var pgSingleton *gorm.DB
 
-var pgSingleton *PGDB
-
-func InitPostgresql() {
+func InitPostgresql() *gorm.DB {
 
 	dsn := os.Getenv("POSTGRES_URL")
 
@@ -24,33 +20,31 @@ func InitPostgresql() {
 		log.Fatal("Error connecting to database")
 	}
 
-	pgSingleton = &PGDB{
-		DB: connectionPool,
+	return connectionPool
+}
+
+func ClosePostgresql(db *gorm.DB) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Printf("Error getting database instance: %v", err)
+		return
+	}
+
+	if err := sqlDB.Close(); err != nil {
+		log.Printf("Error closing database connection: %v", err)
+	} else {
+		log.Println("PostgreSQL database connection closed successfully")
 	}
 }
 
-func ClosePostgresql() {
-	if pgSingleton != nil && pgSingleton.DB != nil {
-		sqlDB, err := pgSingleton.DB.DB()
-		if err != nil {
-			log.Printf("Error getting database instance: %v", err)
-			return
-		}
-		if err := sqlDB.Close(); err != nil {
-			log.Printf("Error closing database connection: %v", err)
-		}
-	}
-}
-
-func GetPostgresql() *PGDB {
+func GetPostgresql() *gorm.DB {
 	if pgSingleton == nil {
 		log.Fatal("PostgreSQL database not initialized")
 	}
 	return pgSingleton
 }
 
-func StartTransaction() *gorm.DB {
-	db := pgSingleton.DB
+func StartTransaction(db *gorm.DB) *gorm.DB {
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("Error starting transaction: %v", tx.Error)

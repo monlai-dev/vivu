@@ -11,7 +11,8 @@ type JourneyDay struct {
 	Date      time.Time
 	DayNumber int
 
-	Activities []JourneyActivity
+	Journey    Journey           `gorm:"foreignKey:JourneyID"`
+	Activities []JourneyActivity `gorm:"foreignKey:JourneyDayID"`
 }
 
 type JourneyActivity struct {
@@ -22,5 +23,6 @@ type JourneyActivity struct {
 	SelectedPOIID uuid.UUID
 	Notes         string
 
-	//Recommendations []ActivityRecommendation
+	JourneyDay  JourneyDay `gorm:"foreignKey:JourneyDayID"`
+	SelectedPOI POI        `gorm:"foreignKey:SelectedPOIID"`
 }

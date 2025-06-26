@@ -5,7 +5,8 @@ type Account struct {
 	Name         string
 	Email        string `gorm:"unique"`
 	PasswordHash string
-	//Role??
-	Journeys []Journey
-	CheckIns []CheckIn
+	Role         string `gorm:"default:'user'"`
+
+	Journeys []Journey `gorm:"foreignKey:AccountID"`
+	CheckIns []CheckIn `gorm:"foreignKey:AccountID"`
 }
