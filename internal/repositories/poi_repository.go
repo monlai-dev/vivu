@@ -14,7 +14,7 @@ type POIRepository interface {
 	UpdatePoi(ctx context.Context, poi *db_models.POI) error
 	Delete(ctx context.Context, id uuid.UUID) error
 
-	GetByIDWithDetails(ctx context.Context, id uuid.UUID) (*db_models.POI, error)
+	GetByIDWithDetails(ctx context.Context, id string) (*db_models.POI, error)
 	List(ctx context.Context, page, pageSize int) ([]db_models.POI, error)
 	ListPoisByProvinceId(ctx context.Context, provinceID string, page, pageSize int) ([]db_models.POI, error)
 }
@@ -66,7 +66,7 @@ func (r *poiRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // when no rows are found.
 // ────────────────────────────────────────────────────────────────
 
-func (r *poiRepository) GetByIDWithDetails(ctx context.Context, id uuid.UUID) (*db_models.POI, error) {
+func (r *poiRepository) GetByIDWithDetails(ctx context.Context, id string) (*db_models.POI, error) {
 	var poi db_models.POI
 	err := r.db.WithContext(ctx).
 		Preload("Details").
@@ -107,6 +107,8 @@ func (r *poiRepository) ListPoisByProvinceId(ctx context.Context, provinceID str
 		Where("province_id = ?", provinceID).
 		Offset(offset).
 		Limit(pageSize).
+		Preload("Details").
+		Preload("Tags").
 		Find(&pois).Error
 	if err != nil {
 		return nil, err

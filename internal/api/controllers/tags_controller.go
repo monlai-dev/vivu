@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"vivu/internal/models/request_models"
 
 	"github.com/gin-gonic/gin"
 	"vivu/internal/services"
@@ -22,7 +23,7 @@ func NewTagController(tagService services.TagServiceInterface) *TagController {
 func (tc *TagController) ListAllTagsHandler(c *gin.Context) {
 	// 1. Parse query parameters
 	pageStr := c.DefaultQuery("page", "1")
-	pageSizeStr := c.DefaultQuery("pageSize", "20")
+	pageSizeStr := c.DefaultQuery("pageSize", "5")
 
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
@@ -45,4 +46,22 @@ func (tc *TagController) ListAllTagsHandler(c *gin.Context) {
 
 	// 3. Respond with success
 	utils.RespondSuccess(c, tags, "Fetched tags successfully")
+}
+
+func (tc *TagController) CreateTagHandler(c *gin.Context) {
+	var createTagRequest request_models.CreateTagRequest
+	if err := c.ShouldBindJSON(&createTagRequest); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Call service layer to insert tag
+	err := tc.tagService.InsertTagTx(createTagRequest, c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	// Respond with success
+	utils.RespondSuccess(c, nil, "Tag created successfully")
 }

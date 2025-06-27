@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"vivu/internal/models/db_models"
+	"vivu/internal/models/request_models"
 	"vivu/internal/models/response_models"
 	"vivu/internal/repositories"
 	"vivu/pkg/utils"
@@ -9,10 +11,26 @@ import (
 
 type TagServiceInterface interface {
 	GetAllTags(page int, pageSize int, ctx context.Context) ([]response_models.TagResponse, error)
+	InsertTagTx(tag request_models.CreateTagRequest, ctx context.Context) error
 }
 
 type TagService struct {
 	tagRepo repositories.TagRepository
+}
+
+func (t *TagService) InsertTagTx(tag request_models.CreateTagRequest, ctx context.Context) error {
+	createTag := db_models.Tag{
+		EnName: tag.En,
+		ViName: tag.Vi,
+		Icon:   tag.Icon,
+	}
+
+	err := t.tagRepo.CreateTag(createTag, ctx)
+	if err != nil {
+		return utils.ErrDatabaseError
+	}
+
+	return nil
 }
 
 func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]response_models.TagResponse, error) {
@@ -22,7 +40,6 @@ func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]
 		return nil, utils.ErrDatabaseError
 	}
 
-	// Handle empty result
 	if len(tags) == 0 {
 		return []response_models.TagResponse{}, utils.ErrTagNotFound
 	}
@@ -32,7 +49,7 @@ func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]
 	for _, tag := range tags {
 		tagResponses = append(tagResponses, response_models.TagResponse{
 			ID:   tag.ID.String(),
-			En:   tag.Name,
+			En:   tag.EnName,
 			Vi:   tag.ViName,
 			Icon: tag.Icon,
 		})
