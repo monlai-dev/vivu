@@ -40,8 +40,6 @@ func (p poiDetailsRepository) UpdatePOIDetails(poiID string, details *db_models.
 			return err // Return any other error encountered
 		}
 
-		// Update the existing details
-		existingDetails.Description = details.Description
 		existingDetails.Images = details.Images
 		existingDetails.Reviews = details.Reviews
 

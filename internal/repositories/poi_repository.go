@@ -17,10 +17,25 @@ type POIRepository interface {
 	GetByIDWithDetails(ctx context.Context, id string) (*db_models.POI, error)
 	List(ctx context.Context, page, pageSize int) ([]db_models.POI, error)
 	ListPoisByProvinceId(ctx context.Context, provinceID string, page, pageSize int) ([]db_models.POI, error)
+	ListPoisByPoisId(ctx context.Context, ids []string) ([]db_models.POI, error)
 }
 
 type poiRepository struct {
 	db *gorm.DB
+}
+
+func (r *poiRepository) ListPoisByPoisId(ctx context.Context, ids []string) ([]db_models.POI, error) {
+
+	var pois []db_models.POI
+	err := r.db.WithContext(ctx).
+		Preload("Details").
+		Where("id in ?", ids).
+		Find(&pois).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return pois, nil
 }
 
 func NewPOIRepository(db *gorm.DB) POIRepository {

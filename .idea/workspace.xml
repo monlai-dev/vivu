@@ -5,15 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/internal/models/request_models/user_input_prompt.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/poi_embeded_repository.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/api/controllers/tags_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/tags_controller.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/db_models/tag.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/tag.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/request_models/tags.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/tags.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/repositories/poi_details_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/poi_details_repository.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/repositories/poi_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/poi_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/poi_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/poi_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/tag_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/tag_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/api_wrap.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/api_wrap.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/custom_err.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/custom_err.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/repositories/repo_err/poi_repo_err.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/prompt_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/prompt_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/open_ai.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/open_ai.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
