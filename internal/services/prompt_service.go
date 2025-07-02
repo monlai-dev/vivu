@@ -74,13 +74,13 @@ func (p *PromptService) PromptInput(ctx context.Context, request request_models.
 	panic("implement me")
 }
 
-func (s *PromptService) CreateAIPlan(ctx context.Context, userPrompt string) ([]response_models.ActivityPlanBlock, error) {
-	embedding, err := s.aiService.GetEmbedding(ctx, userPrompt)
+func (p *PromptService) CreateAIPlan(ctx context.Context, userPrompt string) ([]response_models.ActivityPlanBlock, error) {
+	embedding, err := p.aiService.GetEmbedding(ctx, userPrompt)
 	if err != nil {
 		return nil, err
 	}
 
-	embeddedPois, err := s.embededRepo.GetListOfPoiEmbededByVector(embedding, nil)
+	embeddedPois, err := p.embededRepo.GetListOfPoiEmbededByVector(embedding, nil)
 	if err != nil || len(embeddedPois) == 0 {
 		return nil, fmt.Errorf("no POIs found")
 	}
@@ -90,15 +90,15 @@ func (s *PromptService) CreateAIPlan(ctx context.Context, userPrompt string) ([]
 		poiIDs = append(poiIDs, ep.PoiID)
 	}
 
-	pois, err := s.poisRepo.ListPoisByPoisId(ctx, poiIDs)
+	pois, err := p.poisRepo.ListPoisByPoisId(ctx, poiIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	poiTextList := []string{}
+	var poiTextList []string
 	poiMap := make(map[string]response_models.ActivityPOI)
 	for _, poi := range pois {
-		poiTextList = append(poiTextList, fmt.Sprintf("%s (ID: %s): %s", poi.Name, poi.ID, poi.Description))
+		poiTextList = append(poiTextList, fmt.Sprintf("%p (ID: %p): %p", poi.Name, poi.ID, poi.Description))
 		poiMap[poi.ID.String()] = response_models.ActivityPOI{
 			ID:          poi.ID.String(),
 			Name:        poi.Name,
@@ -109,7 +109,7 @@ func (s *PromptService) CreateAIPlan(ctx context.Context, userPrompt string) ([]
 		}
 	}
 
-	rawJSON, err := s.aiService.GenerateStructuredPlan(ctx, userPrompt, poiTextList)
+	rawJSON, err := p.aiService.GenerateStructuredPlan(ctx, userPrompt, poiTextList)
 	if err != nil {
 		return nil, err
 	}
