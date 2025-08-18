@@ -17,3 +17,17 @@ type ActivityPlanBlock struct {
 	Alternatives []ActivityPOI `json:"alternatives"`
 	WhatToDo     string        `json:"what_to_do"`
 }
+
+type StayOption struct {
+	Name     string `json:"name"`
+	Address  string `json:"address"`
+	CheckIn  string `json:"check_in,omitempty"`
+	CheckOut string `json:"check_out,omitempty"`
+}
+
+type DailyPlan struct {
+	Day        int                 `json:"day"`
+	Date       string              `json:"date,omitempty"`
+	Stay       *StayOption         `json:"stay,omitempty"`
+	Activities []ActivityPlanBlock `json:"activities"`
+}
