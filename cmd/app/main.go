@@ -1,21 +1,74 @@
 package main
 
 import (
-  "fmt"
+	"context"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/fx"
+	"log"
+	"os"
+	"vivu/cmd/fx/dbfx"
+	"vivu/cmd/fx/poisfx"
+	"vivu/cmd/fx/tagsfx"
+	"vivu/internal/api/controllers"
+	"vivu/internal/infra"
+	"vivu/pkg/middleware"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
-
 func main() {
-  //TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-  // to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-  s := "gopher"
-  fmt.Println("Hello and welcome, %s!", s)
+	app := fx.New(
+		fx.Invoke(infra.InitPostgresql),
+		dbfx.Module,
+		poisfx.Module,
+		tagsfx.Module,
 
-  for i := 1; i <= 5; i++ {
-	//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-	// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-	fmt.Println("i =", 100/i)
-  }
+		fx.Invoke(StartServer),
+		fx.Provide(ProvideRouter),
+	)
+
+	app.Run()
+}
+
+func StartServer(lc fx.Lifecycle, engine *gin.Engine) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				log.Println("Starting HTTP server at ${PORT}")
+				if err := engine.Run(":" + os.Getenv("PORT")); err != nil {
+					log.Fatalf("Failed to start server: %v", err)
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			log.Println("Stopping HTTP server")
+			return nil
+		},
+	})
+}
+
+func ProvideRouter(
+	poisController *controllers.POIsController,
+	tagsController *controllers.TagController) *gin.Engine {
+
+	r := gin.Default()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+	r.Use(middleware.CORSMiddleware())
+
+	RegisterRoutes(r, poisController, tagsController)
+
+	return r
+}
+
+func RegisterRoutes(r *gin.Engine,
+	poisController *controllers.POIsController,
+	tagsController *controllers.TagController) {
+
+	poisgroup := r.Group("/pois")
+	poisgroup.GET("/:provinceId", poisController.GetPoisByProvince)
+	poisgroup.GET("/:id", poisController.GetPoiById)
+
+	tagsGroup := r.Group("/tags")
+	tagsGroup.GET("/tags", tagsController.ListAllTagsHandler)
+
 }

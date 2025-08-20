@@ -21,22 +21,22 @@ func NewProvinceRepository(db *gorm.DB) ProvinceRepository {
 	return &provinceRepository{db: db}
 }
 
-func (p provinceRepository) InsertTx(province *db_models.Province, ctx context.Context) (string, error) {
+func (p *provinceRepository) InsertTx(province *db_models.Province, ctx context.Context) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p provinceRepository) UpdateTx(province *db_models.Province, ctx context.Context) error {
+func (p *provinceRepository) UpdateTx(province *db_models.Province, ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p provinceRepository) GetListOfProvinces(ctx context.Context, page int, pageSize int) ([]db_models.Province, error) {
+func (p *provinceRepository) GetListOfProvinces(ctx context.Context, page int, pageSize int) ([]db_models.Province, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (p provinceRepository) SearchByKeyword(ctx context.Context, keyword string, page int, pageSize int) ([]db_models.Province, error) {
+func (p *provinceRepository) SearchByKeyword(ctx context.Context, keyword string, page int, pageSize int) ([]db_models.Province, error) {
 	//TODO implement me
 	panic("implement me")
 }

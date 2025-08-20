@@ -15,7 +15,7 @@ type TagServiceInterface interface {
 }
 
 type TagService struct {
-	tagRepo repositories.TagRepository
+	tagRepo repositories.TagRepositoryInterface
 }
 
 func (t *TagService) InsertTagTx(tag request_models.CreateTagRequest, ctx context.Context) error {
@@ -58,7 +58,7 @@ func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]
 	return tagResponses, nil
 }
 
-func NewTagService(tagRepo repositories.TagRepository) TagServiceInterface {
+func NewTagService(tagRepo repositories.TagRepositoryInterface) TagServiceInterface {
 	return &TagService{
 		tagRepo: tagRepo,
 	}

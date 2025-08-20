@@ -1,4 +1,4 @@
-package fx
+package tagsfx
 
 import (
 	"go.uber.org/fx"
@@ -14,6 +14,6 @@ func provideTagsRepo(db *gorm.DB) repositories.TagRepositoryInterface {
 	return repositories.NewTagRepository(db)
 }
 
-func provideTagsService(repo repositories.TagRepositoryInterface) services.TagServiceInterface {
-	return services.NewTagService(repo)
+func provideTagsService(tagRepo repositories.TagRepositoryInterface) services.TagServiceInterface {
+	return services.NewTagService(tagRepo)
 }

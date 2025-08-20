@@ -5,11 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/cmd/fx/poisfx/init.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cmd/fx/tagsfx/init.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/response_models/plans.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/response_models/plans.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repositories/poi_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/poi_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/prompt_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/prompt_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/open_ai.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/open_ai.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/repositories/province_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/province_repository.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/repositories/tag_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/tag_repository.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/tag_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/tag_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/api_wrap.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/api_wrap.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,23 +41,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "git-widget-placeholder": "feature/1-adjust-ai-response",
-    "go.import.settings.migrated": "true",
-    "last_opened_file_path": "C:/Users/admin",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "onboarding.tips.debug.path": "C:/Users/admin/GolandProjects/vivu/main.go"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/1-adjust-ai-response&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/admin&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/admin/GolandProjects/vivu/main.go&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -67,16 +72,5 @@
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/cmd/app/main.go</url>
-          <line>18</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

@@ -21,7 +21,7 @@ type TagRepository struct {
 	db *gorm.DB
 }
 
-func (t TagRepository) CreateTag(tag db_models.Tag, ctx context.Context) error {
+func (t *TagRepository) CreateTag(tag db_models.Tag, ctx context.Context) error {
 
 	return t.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.WithContext(ctx).Create(&tag).Error; err != nil {
@@ -33,7 +33,7 @@ func (t TagRepository) CreateTag(tag db_models.Tag, ctx context.Context) error {
 
 }
 
-func (t TagRepository) GetTagByID(tagID string) (*db_models.Tag, error) {
+func (t *TagRepository) GetTagByID(tagID string) (*db_models.Tag, error) {
 
 	var tag db_models.Tag
 	err := t.db.WithContext(context.Background()).Where("id = ?", tagID).First(&tag).Error
@@ -47,7 +47,7 @@ func (t TagRepository) GetTagByID(tagID string) (*db_models.Tag, error) {
 	return &tag, nil
 }
 
-func (t TagRepository) GetAllTags(page int, pageSize int, ctx context.Context) ([]db_models.Tag, error) {
+func (t *TagRepository) GetAllTags(page int, pageSize int, ctx context.Context) ([]db_models.Tag, error) {
 
 	var tags []db_models.Tag
 	err := t.db.WithContext(ctx).Scopes(func(db *gorm.DB) *gorm.DB {
