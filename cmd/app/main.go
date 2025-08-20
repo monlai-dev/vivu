@@ -3,23 +3,33 @@ package main
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"go.uber.org/fx"
 	"log"
 	"os"
-	"vivu/cmd/fx/dbfx"
-	"vivu/cmd/fx/poisfx"
-	"vivu/cmd/fx/tagsfx"
+	"vivu/cmd/fx/controllers_fx"
+	"vivu/cmd/fx/db_fx"
+	"vivu/cmd/fx/pois_fx"
+	"vivu/cmd/fx/tags_fx"
 	"vivu/internal/api/controllers"
 	"vivu/internal/infra"
 	"vivu/pkg/middleware"
 )
 
+func init() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file, %v", err)
+	}
+}
+
 func main() {
 	app := fx.New(
 		fx.Invoke(infra.InitPostgresql),
-		dbfx.Module,
-		poisfx.Module,
-		tagsfx.Module,
+		db_fx.Module,
+		pois_fx.Module,
+		tags_fx.Module,
+		controllers_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -54,6 +64,7 @@ func ProvideRouter(
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.TraceIDMiddleware())
 
 	RegisterRoutes(r, poisController, tagsController)
 
@@ -65,10 +76,10 @@ func RegisterRoutes(r *gin.Engine,
 	tagsController *controllers.TagController) {
 
 	poisgroup := r.Group("/pois")
-	poisgroup.GET("/:provinceId", poisController.GetPoisByProvince)
-	poisgroup.GET("/:id", poisController.GetPoiById)
+	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
+	poisgroup.GET("/pois/:id", poisController.GetPoiById)
 
 	tagsGroup := r.Group("/tags")
-	tagsGroup.GET("/tags", tagsController.ListAllTagsHandler)
+	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)
 
 }
