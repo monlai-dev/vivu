@@ -9,7 +9,9 @@ import (
 	"os"
 	"vivu/cmd/fx/controllers_fx"
 	"vivu/cmd/fx/db_fx"
+	"vivu/cmd/fx/poi_embedded_fx"
 	"vivu/cmd/fx/pois_fx"
+	"vivu/cmd/fx/prompt_fx"
 	"vivu/cmd/fx/tags_fx"
 	"vivu/internal/api/controllers"
 	"vivu/internal/infra"
@@ -30,6 +32,8 @@ func main() {
 		pois_fx.Module,
 		tags_fx.Module,
 		controllers_fx.Module,
+		prompt_fx.Module,
+		poi_embedded_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -51,6 +55,7 @@ func StartServer(lc fx.Lifecycle, engine *gin.Engine) {
 		},
 		OnStop: func(ctx context.Context) error {
 			log.Println("Stopping HTTP server")
+			infra.ClosePostgresql(infra.GetPostgresql())
 			return nil
 		},
 	})
@@ -58,7 +63,8 @@ func StartServer(lc fx.Lifecycle, engine *gin.Engine) {
 
 func ProvideRouter(
 	poisController *controllers.POIsController,
-	tagsController *controllers.TagController) *gin.Engine {
+	tagsController *controllers.TagController,
+	promptController *controllers.PromptController) *gin.Engine {
 
 	r := gin.Default()
 	r.Use(gin.Logger())
@@ -66,14 +72,15 @@ func ProvideRouter(
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.TraceIDMiddleware())
 
-	RegisterRoutes(r, poisController, tagsController)
+	RegisterRoutes(r, poisController, tagsController, promptController)
 
 	return r
 }
 
 func RegisterRoutes(r *gin.Engine,
 	poisController *controllers.POIsController,
-	tagsController *controllers.TagController) {
+	tagsController *controllers.TagController,
+	promptController *controllers.PromptController) {
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
@@ -82,4 +89,6 @@ func RegisterRoutes(r *gin.Engine,
 	tagsGroup := r.Group("/tags")
 	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)
 
+	promptGroup := r.Group("/prompt")
+	promptGroup.POST("/generate-plan", promptController.CreatePromptHandler)
 }
