@@ -46,7 +46,6 @@ func (r *poiRepository) ListPoisByPoisId(ctx context.Context, ids []string) ([]*
 	return pois, nil
 }
 
-// New method: Search POIs by name (for location-based searches)
 func (r *poiRepository) SearchPOIsByName(ctx context.Context, name string) ([]*db_models.POI, error) {
 	var pois []*db_models.POI
 
@@ -57,7 +56,7 @@ func (r *poiRepository) SearchPOIsByName(ctx context.Context, name string) ([]*d
 		Preload("Tags").
 		Preload("Category").
 		Preload("Province").
-		Where("LOWER(name) LIKE ", searchTerm).
+		Where("LOWER(name) LIKE ?", searchTerm).
 		Limit(10).
 		Find(&pois).Error
 
@@ -104,7 +103,6 @@ func (r *poiRepository) SearchPOIsByKeywords(ctx context.Context, keywords []str
 	return pois, nil
 }
 
-// Find POIs by location names (comprehensive location search)
 func (r *poiRepository) FindPOIsByLocationNames(ctx context.Context, locations []string) ([]*db_models.POI, error) {
 	if len(locations) == 0 {
 		return nil, fmt.Errorf("no locations provided")
@@ -125,8 +123,8 @@ func (r *poiRepository) FindPOIsByLocationNames(ctx context.Context, locations [
 	for _, location := range locations {
 		searchTerm := "%" + strings.ToLower(strings.TrimSpace(location)) + "%"
 		// Search in POI name, address, and province name
-		conditions = append(conditions, "(LOWER(pois.name) LIKE ? OR LOWER(pois.address) LIKE ? OR LOWER(provinces.name) LIKE ? OR LOWER(provinces.name_en) LIKE ?)")
-		args = append(args, searchTerm, searchTerm, searchTerm, searchTerm)
+		conditions = append(conditions, "(LOWER(pois.name) LIKE ? OR LOWER(pois.address) LIKE ? OR LOWER(provinces.name) LIKE ?)")
+		args = append(args, searchTerm, searchTerm, searchTerm)
 	}
 
 	if len(conditions) > 0 {
@@ -134,7 +132,7 @@ func (r *poiRepository) FindPOIsByLocationNames(ctx context.Context, locations [
 		query = query.Where(whereClause, args...)
 	}
 
-	err := query.Limit(15).Find(&pois).Error
+	err := query.Limit(30).Find(&pois).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to find POIs by location names: %w", err)
 	}

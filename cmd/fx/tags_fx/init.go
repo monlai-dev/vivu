@@ -1,4 +1,4 @@
-package tagsfx
+package tags_fx
 
 import (
 	"go.uber.org/fx"

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"vivu/internal/models/db_models"
 	"vivu/internal/models/request_models"
 	"vivu/internal/models/response_models"
@@ -37,6 +38,7 @@ func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]
 	tags, err := t.tagRepo.GetAllTags(page, pageSize, ctx)
 	if err != nil {
 		//log the error for debugging
+		log.Printf("Database error occurred: %v", err)
 		return nil, utils.ErrDatabaseError
 	}
 

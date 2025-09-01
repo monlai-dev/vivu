@@ -8,3 +8,7 @@ type POIDetail struct {
 	Images  []string  `gorm:"type:text[]"`
 	Reviews string    `gorm:"type:jsonb"`
 }
+
+func (POIDetail) TableName() string {
+	return "poi_details"
+}

@@ -85,7 +85,7 @@ Return a JSON array. Each item should have:
 - activity: a short title
 - start_time, end_time: 24-hour format (e.g. "09:00")
 - main_poi_id: the primary POI for the activity
-- what_to_do: a short description of the recommended activity at the main POI
+- what_to_do: a short description of the recommended activity at the POI
 - alternative_poi_ids: 2–3 optional POI IDs to swap in
 
 Constraints:

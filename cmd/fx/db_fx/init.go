@@ -1,4 +1,4 @@
-package dbfx
+package db_fx
 
 import (
 	"go.uber.org/fx"

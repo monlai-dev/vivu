@@ -1,4 +1,4 @@
-package poisfx
+package pois_fx
 
 import (
 	"go.uber.org/fx"

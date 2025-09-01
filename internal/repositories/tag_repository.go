@@ -50,10 +50,12 @@ func (t *TagRepository) GetTagByID(tagID string) (*db_models.Tag, error) {
 func (t *TagRepository) GetAllTags(page int, pageSize int, ctx context.Context) ([]db_models.Tag, error) {
 
 	var tags []db_models.Tag
+
 	err := t.db.WithContext(ctx).Scopes(func(db *gorm.DB) *gorm.DB {
 		offset := (page - 1) * pageSize
 		return db.Offset(offset).Limit(pageSize)
 	}).Find(&tags).Error
+
 	if err != nil {
 		return nil, err
 	}

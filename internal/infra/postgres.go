@@ -13,13 +13,15 @@ func InitPostgresql() *gorm.DB {
 
 	dsn := os.Getenv("POSTGRES_URL")
 
+	log.Printf("Connecting to PostgreSQL database with DSN: %s", dsn)
+
 	connectionPool, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		log.Printf("Error connecting to database: %v", err)
 		log.Fatal("Error connecting to database")
 	}
-
+	pgSingleton = connectionPool
 	return connectionPool
 }
 
