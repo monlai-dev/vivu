@@ -12,6 +12,7 @@ import (
 	"vivu/cmd/fx/poi_embedded_fx"
 	"vivu/cmd/fx/pois_fx"
 	"vivu/cmd/fx/prompt_fx"
+	"vivu/cmd/fx/province_fx"
 	"vivu/cmd/fx/tags_fx"
 	"vivu/internal/api/controllers"
 	"vivu/internal/infra"
@@ -34,6 +35,7 @@ func main() {
 		controllers_fx.Module,
 		prompt_fx.Module,
 		poi_embedded_fx.Module,
+		province_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -64,7 +66,8 @@ func StartServer(lc fx.Lifecycle, engine *gin.Engine) {
 func ProvideRouter(
 	poisController *controllers.POIsController,
 	tagsController *controllers.TagController,
-	promptController *controllers.PromptController) *gin.Engine {
+	promptController *controllers.PromptController,
+	provinceController *controllers.ProvincesController) *gin.Engine {
 
 	r := gin.Default()
 	r.Use(gin.Logger())
@@ -72,7 +75,7 @@ func ProvideRouter(
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.TraceIDMiddleware())
 
-	RegisterRoutes(r, poisController, tagsController, promptController)
+	RegisterRoutes(r, poisController, tagsController, promptController, provinceController)
 
 	return r
 }
@@ -80,15 +83,19 @@ func ProvideRouter(
 func RegisterRoutes(r *gin.Engine,
 	poisController *controllers.POIsController,
 	tagsController *controllers.TagController,
-	promptController *controllers.PromptController) {
+	promptController *controllers.PromptController,
+	provinceController *controllers.ProvincesController) {
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
-	poisgroup.GET("/pois/:id", poisController.GetPoiById)
+	poisgroup.GET("/pois-details/:id", poisController.GetPoiById)
 
 	tagsGroup := r.Group("/tags")
 	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)
 
 	promptGroup := r.Group("/prompt")
 	promptGroup.POST("/generate-plan", promptController.CreatePromptHandler)
+
+	provinceGroup := r.Group("/provinces")
+	provinceGroup.GET("/list-all", provinceController.GetAllProvinces)
 }
