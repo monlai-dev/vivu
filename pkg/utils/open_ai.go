@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"vivu/internal/models/request_models"
 
 	"github.com/pgvector/pgvector-go"
 	openai "github.com/sashabaranov/go-openai"
@@ -12,11 +13,22 @@ type EmbeddingClientInterface interface {
 	GetEmbedding(ctx context.Context, text string) (pgvector.Vector, error)
 	GetEmbeddings(ctx context.Context, texts []string) ([]pgvector.Vector, error)
 	GenerateStructuredPlan(ctx context.Context, userPrompt string, pois []string, dayCount int) (string, error)
+	GeneratePlanOnlyJSON(
+		ctx context.Context,
+		profile any, // your TravelProfile or a lightweight struct
+		poiList []request_models.POISummary,
+		dayCount int,
+	) (string, error)
 }
 
 type OpenAIEmbeddingClient struct {
 	client *openai.Client
 	model  string
+}
+
+func (c *OpenAIEmbeddingClient) GeneratePlanOnlyJSON(ctx context.Context, profile any, poiList []request_models.POISummary, dayCount int) (string, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewOpenAIEmbeddingClient(apiKey, model string) EmbeddingClientInterface {

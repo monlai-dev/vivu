@@ -1,1 +1,45 @@
 package controllers
+
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
+	"vivu/internal/services"
+	"vivu/pkg/utils"
+)
+
+type ProvincesController struct {
+	provinceService services.ProvinceServiceInterface
+}
+
+func NewProvincesController(provinceService services.ProvinceServiceInterface) *ProvincesController {
+	return &ProvincesController{
+		provinceService: provinceService,
+	}
+}
+
+func (p *ProvincesController) GetAllProvinces(c *gin.Context) {
+
+	pageStr := c.DefaultQuery("page", "1")
+	pageSizeStr := c.DefaultQuery("pageSize", "5")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid page number")
+		return
+	}
+
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 || pageSize > 100 {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid page size (must be 1-100)")
+		return
+	}
+
+	pois, err := p.provinceService.GetAllTags(page, pageSize, c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, pois, "Provinces fetched successfully")
+}

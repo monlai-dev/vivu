@@ -5,29 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/models/response_models/quiz_response.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/fx/controllers_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/controllers_fx/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/fx/db_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/db_fx/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/fx/poi_embedded_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/poi_embedded_fx/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/fx/pois_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/pois_fx/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/fx/tags_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/tags_fx/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/infra/postgres.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/infra/postgres.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/db_models/poi_detail.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/poi_detail.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/fx/prompt_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/prompt_fx/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/fx/province_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/province_fx/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/api/controllers/prompt_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/prompt_controller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/api/controllers/provinces_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/provinces_controller.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/models/request_models/user_input_prompt.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/user_input_prompt.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repositories/poi_embeded_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/poi_embeded_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repositories/poi_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/poi_repository.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/response_models/plans.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/response_models/plans.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/repositories/province_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/province_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repositories/tag_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/tag_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/embeded_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/embeded_service.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/services/prompt_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/prompt_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/tag_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/tag_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/api_wrap.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/api_wrap.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/custom_err.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/custom_err.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/province_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/province_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/gemini_free.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/gemini_free.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pkg/utils/open_ai.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/open_ai.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/time_utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/time_utils.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

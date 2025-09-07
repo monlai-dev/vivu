@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"vivu/internal/models/request_models"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/pgvector/pgvector-go"
@@ -41,6 +42,85 @@ func NewGeminiEmbeddingClient(apiKey, model string) (EmbeddingClientInterface, e
 		client: client,
 		model:  model,
 	}, nil
+}
+
+func (c *GeminiEmbeddingClient) GeneratePlanOnlyJSON(
+	ctx context.Context,
+	profile any, // your TravelProfile or a lightweight struct
+	poiList []request_models.POISummary,
+	dayCount int,
+) (string, error) {
+
+	if dayCount < 1 || dayCount > 30 {
+		return "", fmt.Errorf("bad dayCount")
+	}
+	if len(poiList) == 0 {
+		return "", fmt.Errorf("no pois")
+	}
+
+	m := c.client.GenerativeModel(c.model)
+	// Force JSON-only so you can delete brace-matching hacks:
+	m.ResponseMIMEType = "application/json"
+	m.SetTopP(0.5)
+	m.SetTopK(20)
+	m.SetTemperature(0.1)
+
+	schema := `
+{
+  "destination": "string",
+  "duration_days": 3,
+  "days": [
+    {
+      "day": 1,
+      "activities": [
+        {"start_time":"09:00","end_time":"11:00","main_poi_id":"<ID from list>"}
+      ]
+    }
+  ]
+}`
+
+	// Build a tight instruction. No prose, exact JSON keys.
+	var poiBuf strings.Builder
+	for _, p := range poiList {
+		fmt.Fprintf(&poiBuf, "- ID:%s | Name:%s | Category:%s | Description:%s \n", p.ID, p.Name, p.Category, p.Description)
+	}
+
+	prompt := fmt.Sprintf(`
+You are scheduling a %d-day travel plan. Return **JSON only** that exactly matches the schema below. 
+Use only POI IDs from the list. Ensure realistic times (09:00–21:00), 2–5 activities/day, and do not overlap times.
+Respect a relaxed pace if the profile indicates "relaxed", otherwise standard.
+
+Schema (example, match keys exactly):
+%s
+
+Profile (read-only, use to bias selection and density):
+%+v
+
+Allowed POIs (use IDs from here only):
+%s
+
+Hard constraints:
+- Exactly %d days in "days".
+- Each day.day = 1..%d (no gaps).
+- start_time < end_time; times formatted HH:MM.
+- Choose diverse categories when possible.
+
+Return JSON only. No comments, no markdown.
+`, dayCount, schema, profile, poiBuf.String(), dayCount, dayCount)
+
+	resp, err := m.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		return "", fmt.Errorf("gemini: %w", err)
+	}
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no content")
+	}
+	content := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+	// Because ResponseMIMEType="application/json", this should already be clean JSON.
+	if !json.Valid([]byte(content)) {
+		return "", fmt.Errorf("not valid json")
+	}
+	return content, nil
 }
 
 // GetEmbedding generates a simple vector embedding for text
@@ -87,7 +167,7 @@ func (c *GeminiEmbeddingClient) GenerateStructuredPlan(ctx context.Context, user
 	model.SetTemperature(0.1)      // Lower temperature = faster, more deterministic
 	model.SetTopP(0.5)             // Reduced from 0.8 for faster token selection
 	model.SetTopK(10)              // Reduced from 20 for faster processing
-	model.SetMaxOutputTokens(2000) // Limit output length for faster generation
+	model.SetMaxOutputTokens(5000) // Limit output length for faster generation
 
 	// OPTIMIZATION 2: Limit POI list to essential information only
 	// Instead of sending full POI descriptions, send only essential data
@@ -98,7 +178,7 @@ func (c *GeminiEmbeddingClient) GenerateStructuredPlan(ctx context.Context, user
 
 	// OPTIMIZATION 4: Single attempt with timeout instead of multiple retries
 	// Set a reasonable timeout for the API call
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	resp, err := model.GenerateContent(ctxWithTimeout, genai.Text(prompt))

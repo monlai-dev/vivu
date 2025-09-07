@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"vivu/internal/api/controllers"
 	"vivu/internal/repositories"
 	"vivu/internal/services"
 	"vivu/pkg/utils"
@@ -16,8 +15,7 @@ import (
 
 var Module = fx.Provide(
 	ProvideEmbeddingClient,
-	ProvidePromptService,
-	ProvidePromptController)
+	ProvidePromptService)
 
 // EmbeddingConfig holds configuration for embedding clients
 type EmbeddingConfig struct {
@@ -61,13 +59,6 @@ func ProvidePromptService(
 		embededRepo,
 		poisRepo,
 	)
-}
-
-// ProvidePromptController creates the prompt controller
-func ProvidePromptController(
-	promptService services.PromptServiceInterface,
-) *controllers.PromptController {
-	return controllers.NewPromptController(promptService)
 }
 
 // getEmbeddingConfig reads configuration from environment variables

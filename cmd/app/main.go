@@ -95,6 +95,9 @@ func RegisterRoutes(r *gin.Engine,
 
 	promptGroup := r.Group("/prompt")
 	promptGroup.POST("/generate-plan", promptController.CreatePromptHandler)
+	promptGroup.POST("/quiz/start", promptController.StartQuizHandler)
+	promptGroup.POST("/quiz/answer", promptController.AnswerQuizHandler)
+	promptGroup.POST("/quiz/plan-only", promptController.PlanOnlyHandler)
 
 	provinceGroup := r.Group("/provinces")
 	provinceGroup.GET("/list-all", provinceController.GetAllProvinces)

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"vivu/internal/models/db_models"
 	"vivu/internal/models/request_models"
@@ -19,16 +21,24 @@ import (
 type PromptServiceInterface interface {
 	CreatePrompt(ctx context.Context, prompt string) (string, error)
 	PromptInput(ctx context.Context, request request_models.CreateTagRequest) (string, error)
-	CreateAIPlan(ctx context.Context, userPrompt string) ([]response_models.DailyPlan, error)
+	CreateNarrativeAIPlan(ctx context.Context, userPrompt string) (*response_models.TravelItinerary, error)
 	ExtractLocationFromPrompt(prompt string) []string
+
+	StartTravelQuiz(ctx context.Context, userID string) (*response_models.QuizResponse, error)
+	ProcessQuizAnswer(ctx context.Context, request request_models.QuizRequest) (*response_models.QuizResponse, error)
+	GeneratePersonalizedPlan(ctx context.Context, sessionID string) (*response_models.QuizResultResponse, error)
+
+	GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error)
 }
 
 type PromptService struct {
-	poisService POIServiceInterface
-	tagService  TagServiceInterface
-	aiService   utils.EmbeddingClientInterface
-	embededRepo repositories.IPoiEmbededRepository
-	poisRepo    repositories.POIRepository
+	poisService  POIServiceInterface
+	tagService   TagServiceInterface
+	aiService    utils.EmbeddingClientInterface
+	embededRepo  repositories.IPoiEmbededRepository
+	poisRepo     repositories.POIRepository
+	quizSessions map[string]*QuizSession
+	sessionMutex sync.RWMutex
 }
 
 func NewPromptService(
@@ -37,6 +47,7 @@ func NewPromptService(
 	aiService utils.EmbeddingClientInterface,
 	embededRepo repositories.IPoiEmbededRepository,
 	poisRepo repositories.POIRepository,
+
 ) PromptServiceInterface {
 	return &PromptService{
 		poisService: poisService,
@@ -45,6 +56,589 @@ func NewPromptService(
 		embededRepo: embededRepo,
 		poisRepo:    poisRepo,
 	}
+}
+
+type QuizSession struct {
+	SessionID   string            `json:"session_id"`
+	UserID      string            `json:"user_id"`
+	Answers     map[string]string `json:"answers"`
+	CurrentStep int               `json:"current_step"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error) {
+	p.sessionMutex.RLock()
+	session, ok := p.quizSessions[sessionID]
+	p.sessionMutex.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("quiz session not found")
+	}
+
+	startTime := time.Now()
+	log.Printf("Generating plan only for session %s", sessionID)
+	profile := p.createTravelProfile(session.Answers)
+
+	log.Printf("Travel profile: %d", time.Since(startTime))
+	pois, err := p.findPersonalizedPOIs(ctx, profile)
+	if err != nil || len(pois) == 0 {
+		return nil, fmt.Errorf("no relevant POIs")
+	}
+
+	log.Printf("Found %d relevant POIs in %.3f ms", len(pois), time.Since(startTime).Seconds())
+	var list []request_models.POISummary
+	for _, poi := range pois {
+		list = append(list, request_models.POISummary{
+			ID: poi.ID.String(), Name: poi.Name, Category: p.categorizePOI(poi), Description: poi.Description,
+		})
+		if len(list) >= 20 {
+			break
+		}
+	}
+
+	dayCount := profile.Duration
+	if dayCount < 1 {
+		dayCount = 1
+	}
+
+	log.Printf("Generating plan with %d days and %d POIs in %.3f ms", dayCount, len(list), time.Since(startTime).Seconds())
+	jsonPlan, err := p.aiService.GeneratePlanOnlyJSON(ctx, profile, list, dayCount)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("Generated plan in %.3f ms: %s", time.Since(startTime).Seconds(), jsonPlan)
+	var plan response_models.PlanOnly
+	if err := json.Unmarshal([]byte(jsonPlan), &plan); err != nil {
+		return nil, fmt.Errorf("invalid plan json: %w", err)
+	}
+
+	if len(plan.Days) != dayCount {
+		return nil, fmt.Errorf("expected %d days, got %d", dayCount, len(plan.Days))
+	}
+
+	log.Printf("Unmarshalled plan in %.3f ms", time.Since(startTime).Seconds())
+	uniq := make(map[string]struct{})
+	for _, d := range plan.Days {
+		for _, act := range d.Activities {
+			if act.MainPOIID != "" {
+				uniq[act.MainPOIID] = struct{}{}
+			}
+		}
+	}
+	if len(uniq) == 0 {
+		return nil, fmt.Errorf("plan contains no poi ids")
+	}
+
+	ids := make([]string, 0, len(uniq))
+	for id := range uniq {
+		ids = append(ids, id)
+	}
+
+	log.Printf("Extracted %d unique POI IDs in %.3f ms", len(ids), time.Since(startTime).Seconds())
+	dbPOIs, err := p.poisRepo.ListPoisByPoisId(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load pois for enrichment: %w", err)
+	}
+
+	// 3) build response map
+	log.Printf("Loaded %d POIs from DB in %.3f ms", len(dbPOIs), time.Since(startTime).Seconds())
+	respByID := make(map[string]response_models.POI, len(dbPOIs))
+	for _, poi := range dbPOIs {
+		respByID[poi.ID.String()] = response_models.POI{
+			ID:           poi.ID.String(),
+			Name:         poi.Name,
+			Latitude:     poi.Latitude,
+			Longitude:    poi.Longitude,
+			Category:     poi.Category.Name,
+			OpeningHours: poi.OpeningHours,
+			ContactInfo:  poi.ContactInfo,
+			Address:      poi.Address,
+			PoiDetails: func() *response_models.PoiDetails {
+				if poi.Details.ID == uuid.Nil {
+					return nil
+				}
+				return &response_models.PoiDetails{
+					ID:          poi.Details.ID.String(),
+					Description: poi.Description, // or poi.Details.Description if you prefer
+					Image:       poi.Details.Images,
+				}
+			}(),
+		}
+	}
+
+	log.Printf("Built POI response map in %.3f ms", time.Since(startTime).Seconds())
+	// 4) stitch enrichment back into plan
+	for di := range plan.Days {
+		for ai := range plan.Days[di].Activities {
+			poid := plan.Days[di].Activities[ai].MainPOIID
+			if p, ok := respByID[poid]; ok {
+				plan.Days[di].Activities[ai].MainPOI = &p
+			}
+		}
+	}
+
+	plan.CreatedAt = time.Now()
+	return &plan, nil
+}
+
+// StartTravelQuiz initiates a new quiz session
+func (p *PromptService) StartTravelQuiz(ctx context.Context, userID string) (*response_models.QuizResponse, error) {
+	sessionID := fmt.Sprintf("quiz_%s_%d", userID, time.Now().Unix())
+
+	session := &QuizSession{
+		SessionID:   sessionID,
+		UserID:      userID,
+		Answers:     make(map[string]string),
+		CurrentStep: 1,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	p.sessionMutex.Lock()
+	if p.quizSessions == nil {
+		p.quizSessions = make(map[string]*QuizSession)
+	}
+	p.quizSessions[sessionID] = session
+	p.sessionMutex.Unlock()
+
+	questions := p.generateQuizQuestions()
+
+	return &response_models.QuizResponse{
+		Questions:    []request_models.QuizQuestion{questions[0]}, // Start with first question
+		CurrentStep:  1,
+		TotalSteps:   len(questions),
+		SessionID:    sessionID,
+		IsComplete:   false,
+		NextEndpoint: "/api/quiz/answer",
+	}, nil
+}
+
+// ProcessQuizAnswer processes user's answer and returns next question or completion status
+func (p *PromptService) ProcessQuizAnswer(ctx context.Context, request request_models.QuizRequest) (*response_models.QuizResponse, error) {
+	p.sessionMutex.Lock()
+	session, exists := p.quizSessions[request.SessionID]
+	if !exists {
+		p.sessionMutex.Unlock()
+		return nil, fmt.Errorf("quiz session not found")
+	}
+
+	// Update answers
+	for key, value := range request.Answers {
+		session.Answers[key] = value
+	}
+	session.UpdatedAt = time.Now()
+	p.sessionMutex.Unlock()
+
+	questions := p.generateQuizQuestions()
+
+	// Check if quiz is complete
+	if session.CurrentStep >= len(questions) {
+		return &response_models.QuizResponse{
+			Questions:    nil,
+			CurrentStep:  session.CurrentStep,
+			TotalSteps:   len(questions),
+			SessionID:    request.SessionID,
+			IsComplete:   true,
+			NextEndpoint: "/api/quiz/generate-plan",
+		}, nil
+	}
+
+	// Return next question
+	session.CurrentStep++
+	nextQuestion := questions[session.CurrentStep-1]
+
+	return &response_models.QuizResponse{
+		Questions:    []request_models.QuizQuestion{nextQuestion},
+		CurrentStep:  session.CurrentStep,
+		TotalSteps:   len(questions),
+		SessionID:    request.SessionID,
+		IsComplete:   false,
+		NextEndpoint: "/api/quiz/answer",
+	}, nil
+}
+
+// generateQuizQuestions creates the quiz questions
+func (p *PromptService) generateQuizQuestions() []request_models.QuizQuestion {
+	return []request_models.QuizQuestion{
+		{
+			ID:       "destination",
+			Question: "Where would you like to travel? 🌍",
+			Type:     "single_choice",
+			Options: []string{
+				"Da Lat - Mountain retreat with cool weather",
+				"Ho Chi Minh City - Bustling urban experience",
+				"Hanoi - Historical and cultural capital",
+				"Hoi An - Ancient town charm",
+				"Nha Trang - Beach and coastal activities",
+				"Phu Quoc - Island paradise",
+				"Sapa - Mountain trekking and ethnic culture",
+				"Other - I'll specify",
+			},
+			Required: true,
+			Category: "destination",
+		},
+		{
+			ID:       "duration",
+			Question: "How many days do you have for this trip? ⏱️",
+			Type:     "single_choice",
+			Options:  []string{"1 day", "2 days", "3 days", "4-5 days", "6-7 days", "1+ weeks"},
+			Required: true,
+			Category: "duration",
+		},
+		{
+			ID:       "travel_style",
+			Question: "What's your travel style? ✈️",
+			Type:     "single_choice",
+			Options: []string{
+				"Adventure & Active - Hiking, sports, outdoor activities",
+				"Cultural & Historical - Museums, temples, local traditions",
+				"Romantic & Relaxing - Couples activities, spa, scenic views",
+				"Family Fun - Kid-friendly activities, safe environments",
+				"Foodie Explorer - Street food, restaurants, cooking classes",
+				"Instagram Worthy - Beautiful spots, photo opportunities",
+				"Local Authentic - Off-beaten-path, local experiences",
+			},
+			Required: true,
+			Category: "travel_style",
+		},
+		{
+			ID:       "budget",
+			Question: "What's your budget range per person? 💰",
+			Type:     "single_choice",
+			Options: []string{
+				"$0-30 - Budget backpacker",
+				"$31-70 - Mid-range comfort",
+				"$71-150 - Premium experience",
+				"$150+ - Luxury travel",
+			},
+			Required: true,
+			Category: "budget",
+		},
+		{
+			ID:       "interests",
+			Question: "What interests you most? (Select all that apply) 🎯",
+			Type:     "multiple_choice",
+			Options: []string{
+				"Nature & Outdoors", "Art & Culture", "Food & Drink",
+				"Shopping", "Nightlife", "Photography", "History",
+				"Adventure Sports", "Wellness & Spa", "Local Markets",
+			},
+			Required: true,
+			Category: "activities",
+		},
+		{
+			ID:       "accommodation",
+			Question: "Where would you prefer to stay? 🏨",
+			Type:     "single_choice",
+			Options: []string{
+				"Budget hostels/guesthouses",
+				"Mid-range hotels",
+				"Boutique/unique properties",
+				"Luxury resorts/hotels",
+				"Local homestays",
+			},
+			Required: true,
+			Category: "accommodation",
+		},
+		{
+			ID:       "dining",
+			Question: "How do you prefer to eat? 🍜",
+			Type:     "single_choice",
+			Options: []string{
+				"Street food & local eateries",
+				"Mix of local and tourist restaurants",
+				"Upscale dining experiences",
+				"International cuisine",
+				"Vegetarian/special dietary needs",
+			},
+			Required: true,
+			Category: "dining",
+		},
+		{
+			ID:       "activity_level",
+			Question: "What's your preferred activity level? 🏃‍♀️",
+			Type:     "single_choice",
+			Options: []string{
+				"Low - Mostly relaxing, minimal walking",
+				"Moderate - Some walking, leisurely pace",
+				"High - Active exploration, lots of walking/hiking",
+			},
+			Required: true,
+			Category: "activity_level",
+		},
+	}
+}
+
+// GeneratePersonalizedPlan creates a customized itinerary based on quiz answers
+func (p *PromptService) GeneratePersonalizedPlan(ctx context.Context, sessionID string) (*response_models.QuizResultResponse, error) {
+	p.sessionMutex.RLock()
+	session, exists := p.quizSessions[sessionID]
+	if !exists {
+		p.sessionMutex.RUnlock()
+		return nil, fmt.Errorf("quiz session not found")
+	}
+	p.sessionMutex.RUnlock()
+
+	// Create travel profile from answers
+	profile := p.createTravelProfile(session.Answers)
+
+	// Generate personalized prompt based on quiz answers
+	personalizedPrompt := p.buildPersonalizedPrompt(session.Answers)
+
+	// Find relevant POIs based on preferences
+	relevantPOIs, err := p.findPersonalizedPOIs(ctx, profile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find relevant POIs: %w", err)
+	}
+
+	// Generate the itinerary
+	itinerary, err := p.CreateNarrativeAIPlan(ctx, personalizedPrompt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate itinerary: %w", err)
+	}
+
+	// Generate personalized recommendations
+	recommendations := p.generatePersonalizedRecommendations(relevantPOIs, profile, session.Answers)
+
+	return &response_models.QuizResultResponse{
+		SessionID:       sessionID,
+		UserProfile:     profile,
+		Itinerary:       itinerary,
+		Recommendations: recommendations,
+	}, nil
+}
+
+// createTravelProfile converts quiz answers into a structured travel profile
+func (p *PromptService) createTravelProfile(answers map[string]string) response_models.TravelProfile {
+	profile := response_models.TravelProfile{
+		TravelStyle: []string{},
+		Interests:   []string{},
+	}
+
+	if dest, ok := answers["destination"]; ok {
+		profile.Destination = p.parseDestination(dest)
+	}
+
+	if duration, ok := answers["duration"]; ok {
+		profile.Duration = p.parseDuration(duration)
+	}
+
+	if style, ok := answers["travel_style"]; ok {
+		profile.TravelStyle = []string{p.parseTravelStyle(style)}
+	}
+
+	if budget, ok := answers["budget"]; ok {
+		profile.BudgetRange = budget
+	}
+
+	if interests, ok := answers["interests"]; ok {
+		profile.Interests = p.parseInterests(interests)
+	}
+
+	if accom, ok := answers["accommodation"]; ok {
+		profile.Accommodation = accom
+	}
+
+	if dining, ok := answers["dining"]; ok {
+		profile.DiningStyle = dining
+	}
+
+	if activity, ok := answers["activity_level"]; ok {
+		profile.ActivityLevel = activity
+	}
+
+	return profile
+}
+
+// buildPersonalizedPrompt creates a detailed prompt based on quiz answers
+func (p *PromptService) buildPersonalizedPrompt(answers map[string]string) string {
+	var prompt strings.Builder
+
+	prompt.WriteString("Create a personalized travel itinerary based on these preferences:\n\n")
+
+	if dest, ok := answers["destination"]; ok {
+		prompt.WriteString(fmt.Sprintf("Destination: %s\n", dest))
+	}
+
+	if duration, ok := answers["duration"]; ok {
+		prompt.WriteString(fmt.Sprintf("Duration: %s\n", duration))
+	}
+
+	if style, ok := answers["travel_style"]; ok {
+		prompt.WriteString(fmt.Sprintf("Travel Style: %s\n", style))
+	}
+
+	if budget, ok := answers["budget"]; ok {
+		prompt.WriteString(fmt.Sprintf("Budget: %s per person\n", budget))
+	}
+
+	if interests, ok := answers["interests"]; ok {
+		prompt.WriteString(fmt.Sprintf("Interests: %s\n", interests))
+	}
+
+	if accom, ok := answers["accommodation"]; ok {
+		prompt.WriteString(fmt.Sprintf("Accommodation: %s\n", accom))
+	}
+
+	if dining, ok := answers["dining"]; ok {
+		prompt.WriteString(fmt.Sprintf("Dining Preference: %s\n", dining))
+	}
+
+	if activity, ok := answers["activity_level"]; ok {
+		prompt.WriteString(fmt.Sprintf("Activity Level: %s\n", activity))
+	}
+
+	prompt.WriteString("\nCreate a detailed, personalized itinerary that matches these preferences exactly.")
+
+	return prompt.String()
+}
+
+// Helper methods for parsing answers
+func (p *PromptService) parseDestination(dest string) string {
+	if strings.Contains(strings.ToLower(dest), "da lat") {
+		return "Da Lat, Vietnam"
+	}
+	if strings.Contains(strings.ToLower(dest), "ho chi minh") || strings.Contains(strings.ToLower(dest), "saigon") {
+		return "Ho Chi Minh City, Vietnam"
+	}
+	// Add more destination parsing...
+	return dest
+}
+
+func (p *PromptService) parseDuration(duration string) int {
+	if strings.Contains(duration, "1 day") {
+		return 1
+	}
+	if strings.Contains(duration, "2 days") {
+		return 2
+	}
+	if strings.Contains(duration, "3 days") {
+		return 3
+	}
+	// Add more duration parsing...
+	return 1
+}
+
+func (p *PromptService) parseTravelStyle(style string) string {
+	if strings.Contains(strings.ToLower(style), "adventure") {
+		return "adventure"
+	}
+	if strings.Contains(strings.ToLower(style), "cultural") {
+		return "cultural"
+	}
+	if strings.Contains(strings.ToLower(style), "romantic") {
+		return "romantic"
+	}
+	// Add more style parsing...
+	return "leisure"
+}
+
+func (p *PromptService) parseInterests(interests string) []string {
+	// Parse comma-separated or multiple choice interests
+	return strings.Split(interests, ",")
+}
+
+// findPersonalizedPOIs finds POIs that match the user's profile
+func (p *PromptService) findPersonalizedPOIs(ctx context.Context, profile response_models.TravelProfile) ([]*db_models.POI, error) {
+	// Combine location-based and preference-based search
+	var searchTerms []string
+
+	// Add destination
+	searchTerms = append(searchTerms, profile.Destination)
+
+	// Add interests as search terms
+	searchTerms = append(searchTerms, profile.Interests...)
+
+	// Add travel style
+	searchTerms = append(searchTerms, profile.TravelStyle...)
+
+	// Use your existing multi-strategy POI finding
+	return p.findRelevantPOIs(ctx, strings.Join(searchTerms, " "))
+}
+
+// generatePersonalizedRecommendations creates tailored recommendations
+func (p *PromptService) generatePersonalizedRecommendations(pois []*db_models.POI, profile response_models.TravelProfile, answers map[string]string) []response_models.PersonalizedRecommendation {
+	var recommendations []response_models.PersonalizedRecommendation
+
+	for _, poi := range pois {
+		if len(recommendations) >= 5 { // Limit recommendations
+			break
+		}
+
+		recType := p.determineRecommendationType(poi, profile)
+		reason := p.generateRecommendationReason(poi, profile, answers)
+
+		travelPOI := response_models.TravelPOI{
+			ID:          poi.ID.String(),
+			Name:        poi.Name,
+			Description: poi.Description,
+			Category:    p.categorizePOI(poi),
+			Address:     poi.Address,
+		}
+
+		recommendation := response_models.PersonalizedRecommendation{
+			Type:        recType,
+			Title:       fmt.Sprintf("Perfect for %s lovers", strings.Join(profile.TravelStyle, " & ")),
+			Description: p.generateRecommendationDescription(poi, profile),
+			POI:         travelPOI,
+			Reason:      reason,
+		}
+
+		recommendations = append(recommendations, recommendation)
+	}
+
+	return recommendations
+}
+
+// determineRecommendationType categorizes recommendations based on profile
+func (p *PromptService) determineRecommendationType(poi *db_models.POI, profile response_models.TravelProfile) string {
+	name := strings.ToLower(poi.Name)
+
+	if strings.Contains(profile.BudgetRange, "$0-30") {
+		return "budget_friendly"
+	}
+
+	if strings.Contains(name, "local") || strings.Contains(name, "traditional") {
+		return "local_favorite"
+	}
+
+	if strings.Contains(name, "hidden") || strings.Contains(name, "secret") {
+		return "hidden_gem"
+	}
+
+	return "must_visit"
+}
+
+// generateRecommendationReason explains why this POI matches the user's preferences
+func (p *PromptService) generateRecommendationReason(poi *db_models.POI, profile response_models.TravelProfile, answers map[string]string) string {
+	reasons := []string{}
+
+	for _, style := range profile.TravelStyle {
+		if strings.Contains(strings.ToLower(poi.Description), strings.ToLower(style)) {
+			reasons = append(reasons, fmt.Sprintf("matches your %s travel style", style))
+		}
+	}
+
+	for _, interest := range profile.Interests {
+		if strings.Contains(strings.ToLower(poi.Description), strings.ToLower(interest)) {
+			reasons = append(reasons, fmt.Sprintf("aligns with your interest in %s", strings.ToLower(interest)))
+		}
+	}
+
+	if len(reasons) == 0 {
+		return "recommended based on your destination choice"
+	}
+
+	return strings.Join(reasons, " and ")
+}
+
+// generateRecommendationDescription creates an engaging description
+func (p *PromptService) generateRecommendationDescription(poi *db_models.POI, profile response_models.TravelProfile) string {
+	return fmt.Sprintf("Based on your preferences for %s travel and interest in %s, this location offers the perfect experience for your %s adventure.",
+		strings.Join(profile.TravelStyle, " & "),
+		strings.Join(profile.Interests, ", "),
+		profile.Destination)
 }
 
 func (p *PromptService) ExtractLocationFromPrompt(prompt string) []string {
@@ -177,173 +771,712 @@ func (p *PromptService) PromptInput(ctx context.Context, request request_models.
 	return p.CreatePrompt(ctx, searchPrompt)
 }
 
-func (p *PromptService) CreateAIPlan(ctx context.Context, userPrompt string) ([]response_models.DailyPlan, error) {
+// Enhanced CreateAIPlan method for narrative-style itineraries
+func (p *PromptService) CreateNarrativeAIPlan(ctx context.Context, userPrompt string) (*response_models.TravelItinerary, error) {
 	// Validate input
 	if strings.TrimSpace(userPrompt) == "" {
 		return nil, utils.ErrInvalidInput
 	}
 
 	startTime := time.Now()
-	log.Printf("ts: %d - Creating AI plan for prompt: %s", time.Since(startTime), userPrompt)
+	log.Printf("ts: %d - Creating narrative AI plan for prompt: %s", time.Since(startTime), userPrompt)
 
-	// Find POIs using multiple strategies
+	// Find relevant POIs
 	pois, err := p.findRelevantPOIs(ctx, userPrompt)
 	if err != nil {
 		return nil, utils.ErrPOINotFound
 	}
 
-	log.Printf("ts: %d - Complete related pois ", time.Since(startTime))
-	log.Printf("Found %d relevant POIs for user prompt", len(pois))
-
 	if len(pois) == 0 {
 		return nil, utils.ErrPoorQualityInput
 	}
 
-	// Prepare POI data for AI
-	var poiTextList []string
-	poiMap := make(map[string]response_models.ActivityPOI)
-	poiNameToID := make(map[string]string)
-
-	for _, poi := range pois {
-		poiText := fmt.Sprintf("POI_ID: %s | Name: %s | Description: %s",
-			poi.ID.String(), poi.Name, poi.Description)
-		if poi.Address != "" {
-			poiText += fmt.Sprintf(" | Address: %s", poi.Address)
-		}
-		if poi.OpeningHours != "" {
-			poiText += fmt.Sprintf(" | Hours: %s", poi.OpeningHours)
-		}
-
-		poiTextList = append(poiTextList, poiText)
-		poiID := poi.ID.String()
-		poiMap[poiID] = response_models.ActivityPOI{
-			ID:          poiID,
-			Name:        poi.Name,
-			Description: poi.Description,
-			ProvinceID:  poi.ProvinceID.String(),
-			CategoryID:  poi.CategoryID.String(),
-			Tags:        flattenTags(poi.Tags),
-		}
-		poiNameToID[strings.ToLower(poi.Name)] = poiID
+	// Extract location and day count
+	locations := p.ExtractLocationFromPrompt(userPrompt)
+	destination := "Vietnam"
+	if len(locations) > 0 {
+		destination = p.formatDestination(locations[0])
 	}
 
 	dayCount := extractDayCount(userPrompt)
-	log.Printf("Planning for %d day(s) with %d POIs", dayCount, len(pois))
 
-	// Generate AI plan with improved prompting
-	rawJSON, err := p.generateAIPlanWithRetry(ctx, userPrompt, poiTextList, dayCount)
+	// Generate enhanced AI plan
+	rawResponse, err := p.generateNarrativeAIPlan(ctx, userPrompt, pois, dayCount, destination)
 	if err != nil {
 		log.Printf("AI generation error: %v", err)
 		return nil, utils.ErrUnexpectedBehaviorOfAI
 	}
 
-	log.Printf("Raw AI JSON response: %s", rawJSON)
+	// Convert POIs to travel format
+	travelPOIs := p.convertPOIsToTravelFormat(pois)
 
-	// Parse response and convert to DailyPlan format
-	activityBlocks, err := p.parseAndConvertToActivityBlocks(rawJSON, dayCount, poiMap, poiNameToID)
-	if err != nil {
-		return nil, err
-	}
+	// Build narrative itinerary
+	itinerary := p.buildNarrativeItinerary(rawResponse, travelPOIs, destination, dayCount, userPrompt)
 
-	// Convert activity blocks to daily plans
-	return p.convertToDailyPlans(activityBlocks, dayCount, userPrompt), nil
+	return itinerary, nil
 }
 
-// Parse response based on day count and convert to activity blocks
-func (p *PromptService) parseAndConvertToActivityBlocks(rawJSON string, dayCount int, poiMap map[string]response_models.ActivityPOI, poiNameToID map[string]string) ([]response_models.ActivityPlanBlock, error) {
-	if dayCount > 1 {
-		return p.parseMultiDayPlanImproved(rawJSON, poiMap, poiNameToID)
-	}
-	return p.parseSingleDayPlanImproved(rawJSON, poiMap, poiNameToID)
-}
+// Convert POIs to enhanced travel format
+func (p *PromptService) convertPOIsToTravelFormat(pois []*db_models.POI) map[string]response_models.TravelPOI {
+	travelPOIs := make(map[string]response_models.TravelPOI)
 
-// Convert activity blocks to daily plans
-func (p *PromptService) convertToDailyPlans(activityBlocks []response_models.ActivityPlanBlock, dayCount int, userPrompt string) []response_models.DailyPlan {
-	var dailyPlans []response_models.DailyPlan
+	for _, poi := range pois {
+		category := p.categorizePOI(poi)
+		duration := p.estimateDuration(poi, category)
+		priceLevel := p.estimatePriceLevel(poi, category)
+		tips := p.generatePOITips(poi, category)
 
-	// Extract locations for potential accommodation suggestions
-	//locations := p.ExtractLocationFromPrompt(userPrompt)
-	//baseLocation := "local area"
-	//if len(locations) > 0 {
-	//	baseLocation = locations[0]
-	//}
-
-	if dayCount == 1 {
-		// Single day plan
-		dailyPlan := response_models.DailyPlan{
-			Day:        1,
-			Date:       time.Now().Format("2006-01-02"),
-			Activities: activityBlocks,
+		travelPOI := response_models.TravelPOI{
+			ID:          poi.ID.String(),
+			Name:        poi.Name,
+			Description: poi.Description,
+			Category:    category,
+			Tags:        p.generateTravelTags(poi),
+			Address:     poi.Address,
+			Duration:    duration,
+			PriceLevel:  priceLevel,
+			Tips:        tips,
 		}
-		dailyPlans = append(dailyPlans, dailyPlan)
-		return dailyPlans
+
+		travelPOIs[poi.ID.String()] = travelPOI
 	}
 
-	// Multi-day plan - organize activities by day
-	currentDay := 1
-	var currentActivities []response_models.ActivityPlanBlock
+	return travelPOIs
+}
 
-	for _, block := range activityBlocks {
-		// Check if this is a day separator
-		if strings.HasPrefix(block.Activity, "Day ") {
-			// Save previous day if it has activities
-			if len(currentActivities) > 0 {
-				dailyPlan := response_models.DailyPlan{
-					Day:  currentDay,
-					Date: time.Now().AddDate(0, 0, currentDay-1).Format("2006-01-02"),
-					//Stay:       p.generateStayOption(baseLocation, currentDay),
-					Activities: currentActivities,
+// Categorize POI for travel context
+func (p *PromptService) categorizePOI(poi *db_models.POI) string {
+	name := strings.ToLower(poi.Name)
+	desc := strings.ToLower(poi.Description)
+
+	// Restaurant/Food patterns
+	foodKeywords := []string{"restaurant", "cafe", "coffee", "food", "eat", "dining", "buffet", "kitchen", "nhà hàng", "quán", "cà phê"}
+	for _, keyword := range foodKeywords {
+		if strings.Contains(name, keyword) || strings.Contains(desc, keyword) {
+			if strings.Contains(name, "cafe") || strings.Contains(name, "coffee") || strings.Contains(name, "cà phê") {
+				return "Cafe"
+			}
+			return "Restaurant"
+		}
+	}
+
+	// Accommodation patterns
+	hotelKeywords := []string{"hotel", "resort", "villa", "lodge", "khách sạn", "resort"}
+	for _, keyword := range hotelKeywords {
+		if strings.Contains(name, keyword) || strings.Contains(desc, keyword) {
+			if strings.Contains(name, "resort") || strings.Contains(name, "villa") {
+				return "Resort"
+			}
+			return "Hotel"
+		}
+	}
+
+	// Attraction patterns
+	attractionKeywords := []string{"temple", "pagoda", "church", "palace", "museum", "park", "lake", "mountain", "fall", "market",
+		"chùa", "đền", "bảo tàng", "công viên", "hồ", "núi", "thác", "chợ"}
+	for _, keyword := range attractionKeywords {
+		if strings.Contains(name, keyword) || strings.Contains(desc, keyword) {
+			if strings.Contains(name, "temple") || strings.Contains(name, "pagoda") || strings.Contains(name, "church") {
+				return "Religious Site"
+			}
+			if strings.Contains(name, "museum") || strings.Contains(name, "palace") {
+				return "Cultural Site"
+			}
+			if strings.Contains(name, "park") || strings.Contains(name, "garden") {
+				return "Park & Garden"
+			}
+			if strings.Contains(name, "lake") || strings.Contains(name, "mountain") || strings.Contains(name, "fall") {
+				return "Natural Attraction"
+			}
+			if strings.Contains(name, "market") {
+				return "Shopping"
+			}
+			return "Attraction"
+		}
+	}
+
+	return "Attraction"
+}
+
+// Estimate visit duration based on POI type
+func (p *PromptService) estimateDuration(poi *db_models.POI, category string) string {
+	switch category {
+	case "Restaurant", "Cafe":
+		return "1-2 hours"
+	case "Hotel", "Resort":
+		return "Overnight"
+	case "Shopping", "Market":
+		return "1-3 hours"
+	case "Museum", "Cultural Site":
+		return "2-3 hours"
+	case "Religious Site":
+		return "30-60 minutes"
+	case "Park & Garden":
+		return "1-2 hours"
+	case "Natural Attraction":
+		return "2-4 hours"
+	default:
+		return "1-2 hours"
+	}
+}
+
+// Estimate price level
+func (p *PromptService) estimatePriceLevel(poi *db_models.POI, category string) string {
+	name := strings.ToLower(poi.Name)
+
+	// Check for luxury indicators
+	luxuryKeywords := []string{"luxury", "premium", "resort", "villa", "palace", "royal", "grand"}
+	for _, keyword := range luxuryKeywords {
+		if strings.Contains(name, keyword) {
+			return "$$$$"
+		}
+	}
+
+	// Check for budget indicators
+	budgetKeywords := []string{"local", "street", "market", "budget", "cheap"}
+	for _, keyword := range budgetKeywords {
+		if strings.Contains(name, keyword) {
+			return "$"
+		}
+	}
+
+	// Default by category
+	switch category {
+	case "Restaurant":
+		return "$$"
+	case "Cafe":
+		return "$"
+	case "Hotel":
+		return "$$$"
+	case "Resort":
+		return "$$$$"
+	case "Shopping", "Market":
+		return "$"
+	case "Attraction", "Cultural Site", "Religious Site":
+		return "$"
+	default:
+		return "$$"
+	}
+}
+
+// Generate travel-focused tags
+func (p *PromptService) generateTravelTags(poi *db_models.POI) []string {
+	var tags []string
+	name := strings.ToLower(poi.Name)
+	desc := strings.ToLower(poi.Description)
+
+	// Location-based tags
+	if strings.Contains(name, "da lat") || strings.Contains(name, "dalat") {
+		tags = append(tags, "da-lat")
+	}
+	if strings.Contains(name, "saigon") || strings.Contains(name, "ho chi minh") {
+		tags = append(tags, "saigon")
+	}
+
+	// Experience tags
+	if strings.Contains(desc, "romantic") || strings.Contains(name, "honeymoon") {
+		tags = append(tags, "romantic")
+	}
+	if strings.Contains(desc, "scenic") || strings.Contains(desc, "view") {
+		tags = append(tags, "scenic")
+	}
+	if strings.Contains(desc, "local") || strings.Contains(desc, "traditional") {
+		tags = append(tags, "local-favorite")
+	}
+	if strings.Contains(desc, "photo") || strings.Contains(desc, "instagram") {
+		tags = append(tags, "instagram-worthy")
+	}
+	if strings.Contains(desc, "family") || strings.Contains(desc, "kid") {
+		tags = append(tags, "family-friendly")
+	}
+
+	// Activity tags
+	if strings.Contains(desc, "walk") || strings.Contains(desc, "hike") {
+		tags = append(tags, "walking")
+	}
+	if strings.Contains(desc, "cultural") || strings.Contains(desc, "history") {
+		tags = append(tags, "cultural")
+	}
+	if strings.Contains(desc, "nature") || strings.Contains(desc, "outdoor") {
+		tags = append(tags, "nature")
+	}
+
+	return tags
+}
+
+// Generate helpful tips for POIs
+func (p *PromptService) generatePOITips(poi *db_models.POI, category string) string {
+	name := strings.ToLower(poi.Name)
+
+	switch category {
+	case "Restaurant", "Cafe":
+		if strings.Contains(name, "local") || strings.Contains(name, "street") {
+			return "Try the local specialties! Cash payment often preferred."
+		}
+		return "Consider making a reservation, especially during peak hours."
+	case "Market":
+		return "Bring cash and don't be afraid to negotiate prices. Best visited in the morning."
+	case "Natural Attraction":
+		return "Bring comfortable walking shoes and water. Early morning visits often have the best lighting."
+	case "Religious Site":
+		return "Dress modestly and be respectful. Remove shoes when entering temples."
+	case "Cultural Site":
+		return "Allow extra time to fully appreciate the exhibits. Photography rules may vary."
+	default:
+		return "Check opening hours before visiting."
+	}
+}
+
+// Format destination name
+func (p *PromptService) formatDestination(location string) string {
+	location = strings.Title(strings.ToLower(location))
+
+	// Handle specific Vietnamese locations
+	switch strings.ToLower(location) {
+	case "da lat", "dalat", "đà lạt":
+		return "Da Lat, Vietnam"
+	case "ho chi minh", "hồ chí minh", "saigon", "sài gòn":
+		return "Ho Chi Minh City, Vietnam"
+	case "ha noi", "hanoi", "hà nội":
+		return "Hanoi, Vietnam"
+	case "hoi an", "hội an":
+		return "Hoi An, Vietnam"
+	case "nha trang":
+		return "Nha Trang, Vietnam"
+	case "phu quoc", "phú quốc":
+		return "Phu Quoc, Vietnam"
+	default:
+		return location + ", Vietnam"
+	}
+}
+
+// Generate narrative AI plan with enhanced prompting
+func (p *PromptService) generateNarrativeAIPlan(ctx context.Context, userPrompt string, pois []*db_models.POI, dayCount int, destination string) (string, error) {
+	// Prepare POI data
+	var poiList []string
+	for _, poi := range pois {
+		poiData := fmt.Sprintf("ID:%s|Name:%s|Category:%s|Description:%s",
+			poi.ID.String(), poi.Name, p.categorizePOI(poi), poi.Description)
+		poiList = append(poiList, poiData)
+	}
+
+	// Create enhanced prompt for narrative style
+	prompt := p.buildNarrativePrompt(userPrompt, poiList, dayCount, destination)
+
+	return p.aiService.GenerateStructuredPlan(ctx, prompt, poiList, dayCount)
+}
+
+// Build narrative-focused prompt
+func (p *PromptService) buildNarrativePrompt(userPrompt string, pois []string, dayCount int, destination string) string {
+	var prompt strings.Builder
+
+	prompt.WriteString(fmt.Sprintf("Create a %d-day travel itinerary for %s in a narrative, engaging style similar to travel blogs.\n\n", dayCount, destination))
+
+	prompt.WriteString("STYLE REQUIREMENTS:\n")
+	prompt.WriteString("- Use emojis for visual appeal (🌸🌿☀️🌤️🌙)\n")
+	prompt.WriteString("- Write in an enthusiastic, personal tone\n")
+	prompt.WriteString("- Include practical tips and local insights\n")
+	prompt.WriteString("- Group activities by time periods (Morning, Afternoon, Evening)\n")
+	prompt.WriteString("- Add descriptive themes for each day\n\n")
+
+	prompt.WriteString("Available POIs:\n")
+	for _, poi := range pois {
+		prompt.WriteString(fmt.Sprintf("- %s\n", poi))
+	}
+
+	prompt.WriteString(fmt.Sprintf("\nUser Request: %s\n\n", userPrompt))
+
+	prompt.WriteString("Return a JSON structure with this format:\n")
+	if dayCount > 1 {
+		prompt.WriteString(`{
+  "title": "Da Lat, Vietnam – 2-Day Itinerary 🌲🌸",
+  "subtitle": "A breezy, romantic escape into pine forests...",
+  "destination": "` + destination + `",
+  "duration": "` + fmt.Sprintf("%d days", dayCount) + `",
+  "travel_style": ["romantic", "nature", "cultural"],
+  "overview": "Perfect for a relaxed yet memorable getaway!",
+  "days": [
+    {
+      "day": 1,
+      "title": "Arrival & Da Lat City Discovery",
+      "theme": "Charming streets, French colonial vibes, and delicious local eats",
+      "location": "Da Lat City Center",
+      "overview": "Day summary",
+      "activities": [
+        {
+          "title": "City Discovery & French Colonial Vibes",
+          "time_block": {
+            "period": "Morning",
+            "start_time": "09:00",
+            "end_time": "12:00",
+            "description": "Charming streets and French colonial architecture"
+          },
+          "main_poi": {
+            "id": "poi-id-from-list",
+            "name": "POI Name",
+            "description": "Description",
+            "category": "Attraction",
+            "tags": ["scenic", "cultural"]
+          },
+          "description": "Detailed narrative description of the activity",
+          "highlights": ["Key highlight 1", "Key highlight 2"],
+          "travel_tips": ["Practical tip 1", "Practical tip 2"]
+        }
+      ]
+    }
+  ]
+}`)
+	} else {
+		prompt.WriteString(`{
+  "title": "Da Lat Day Trip 🌸",
+  "subtitle": "A perfect day escape...",
+  "destination": "` + destination + `",
+  "duration": "1 day",
+  "days": [
+    {
+      "day": 1,
+      "title": "Da Lat Highlights",
+      "activities": [
+        {
+          "title": "Morning Discovery",
+          "time_block": {
+            "period": "Morning",
+            "start_time": "09:00",
+            "end_time": "12:00"
+          },
+          "main_poi": {
+            "id": "poi-id",
+            "name": "POI Name"
+          },
+          "description": "Activity description"
+        }
+      ]
+    }
+  ]
+}`)
+	}
+
+	return prompt.String()
+}
+
+// Build narrative itinerary from AI response
+func (p *PromptService) buildNarrativeItinerary(rawResponse string, travelPOIs map[string]response_models.TravelPOI, destination string, dayCount int, userPrompt string) *response_models.TravelItinerary {
+	// Clean the AI response
+	cleanedResponse := p.cleanJSONResponse(rawResponse)
+
+	// Try to parse the AI response
+	var aiItinerary struct {
+		Title       string   `json:"title"`
+		Subtitle    string   `json:"subtitle"`
+		Destination string   `json:"destination"`
+		Duration    string   `json:"duration"`
+		TravelStyle []string `json:"travel_style"`
+		Overview    string   `json:"overview"`
+		Days        []struct {
+			Day        int    `json:"day"`
+			Title      string `json:"title"`
+			Theme      string `json:"theme"`
+			Location   string `json:"location"`
+			Overview   string `json:"overview"`
+			Activities []struct {
+				Title     string `json:"title"`
+				TimeBlock struct {
+					Period      string `json:"period"`
+					StartTime   string `json:"start_time"`
+					EndTime     string `json:"end_time"`
+					Description string `json:"description"`
+				} `json:"time_block"`
+				MainPOI struct {
+					ID          string   `json:"id"`
+					Name        string   `json:"name"`
+					Description string   `json:"description"`
+					Category    string   `json:"category"`
+					Tags        []string `json:"tags"`
+				} `json:"main_poi"`
+				SupportPOIs []struct {
+					ID          string   `json:"id"`
+					Name        string   `json:"name"`
+					Description string   `json:"description"`
+					Category    string   `json:"category"`
+					Tags        []string `json:"tags"`
+				} `json:"support_pois"`
+				Description   string   `json:"description"`
+				Highlights    []string `json:"highlights"`
+				TravelTips    []string `json:"travel_tips"`
+				EstimatedCost string   `json:"estimated_cost"`
+			} `json:"activities"`
+		} `json:"days"`
+	}
+
+	// Parse the AI response
+	err := json.Unmarshal([]byte(cleanedResponse), &aiItinerary)
+	if err != nil {
+		log.Printf("Failed to parse AI response, creating fallback itinerary: %v", err)
+		return p.createFallbackNarrativeItinerary(travelPOIs, destination, dayCount, userPrompt)
+	}
+
+	// Build the final itinerary
+	itinerary := &response_models.TravelItinerary{
+		Title:       aiItinerary.Title,
+		Subtitle:    aiItinerary.Subtitle,
+		Duration:    aiItinerary.Duration,
+		Destination: aiItinerary.Destination,
+		TravelStyle: aiItinerary.TravelStyle,
+		Overview:    aiItinerary.Overview,
+		Days:        []response_models.TravelDayPlan{},
+		CreatedAt:   time.Now(),
+	}
+
+	// Convert AI days to our format
+	for _, aiDay := range aiItinerary.Days {
+		day := response_models.TravelDayPlan{
+			Day:        aiDay.Day,
+			Date:       time.Now().AddDate(0, 0, aiDay.Day-1).Format("2006-01-02"),
+			Title:      aiDay.Title,
+			Theme:      aiDay.Theme,
+			Location:   aiDay.Location,
+			Overview:   aiDay.Overview,
+			Activities: []response_models.TravelActivity{},
+		}
+
+		// Convert activities
+		for _, aiActivity := range aiDay.Activities {
+			activity := response_models.TravelActivity{
+				Title: aiActivity.Title,
+				TimeBlock: response_models.TimeBlock{
+					Period:      aiActivity.TimeBlock.Period,
+					StartTime:   aiActivity.TimeBlock.StartTime,
+					EndTime:     aiActivity.TimeBlock.EndTime,
+					Description: aiActivity.TimeBlock.Description,
+				},
+				Description:   aiActivity.Description,
+				Highlights:    aiActivity.Highlights,
+				TravelTips:    aiActivity.TravelTips,
+				EstimatedCost: aiActivity.EstimatedCost,
+			}
+
+			// Map main POI
+			if travelPOI, exists := travelPOIs[aiActivity.MainPOI.ID]; exists {
+				activity.MainPOI = travelPOI
+			} else {
+				// Create POI from AI response data
+				activity.MainPOI = response_models.TravelPOI{
+					ID:          aiActivity.MainPOI.ID,
+					Name:        aiActivity.MainPOI.Name,
+					Description: aiActivity.MainPOI.Description,
+					Category:    aiActivity.MainPOI.Category,
+					Tags:        aiActivity.MainPOI.Tags,
 				}
-				dailyPlans = append(dailyPlans, dailyPlan)
-				currentActivities = []response_models.ActivityPlanBlock{}
 			}
 
-			// Extract day number from the separator
-			if dayNum := p.extractDayNumber(block.Activity); dayNum > 0 {
-				currentDay = dayNum
+			// Map support POIs
+			for _, aiSupportPOI := range aiActivity.SupportPOIs {
+				if travelPOI, exists := travelPOIs[aiSupportPOI.ID]; exists {
+					activity.SupportPOIs = append(activity.SupportPOIs, travelPOI)
+				} else {
+					supportPOI := response_models.TravelPOI{
+						ID:          aiSupportPOI.ID,
+						Name:        aiSupportPOI.Name,
+						Description: aiSupportPOI.Description,
+						Category:    aiSupportPOI.Category,
+						Tags:        aiSupportPOI.Tags,
+					}
+					activity.SupportPOIs = append(activity.SupportPOIs, supportPOI)
+				}
 			}
+
+			day.Activities = append(day.Activities, activity)
+		}
+
+		itinerary.Days = append(itinerary.Days, day)
+	}
+
+	return itinerary
+}
+
+// Create fallback itinerary when AI parsing fails
+func (p *PromptService) createFallbackNarrativeItinerary(travelPOIs map[string]response_models.TravelPOI, destination string, dayCount int, userPrompt string) *response_models.TravelItinerary {
+	itinerary := &response_models.TravelItinerary{
+		Title:       fmt.Sprintf("%s – %d-Day Itinerary 🌟", destination, dayCount),
+		Subtitle:    p.generateSubtitle(destination, dayCount),
+		Duration:    fmt.Sprintf("%d days", dayCount),
+		Destination: destination,
+		TravelStyle: p.inferTravelStyle(userPrompt),
+		Overview:    p.generateOverview(destination, dayCount),
+		Days:        []response_models.TravelDayPlan{},
+		CreatedAt:   time.Now(),
+	}
+
+	// Convert available POIs to activities
+	poiList := make([]response_models.TravelPOI, 0, len(travelPOIs))
+	for _, poi := range travelPOIs {
+		poiList = append(poiList, poi)
+	}
+
+	// Distribute POIs across days
+	poisPerDay := len(poiList) / dayCount
+	if poisPerDay == 0 {
+		poisPerDay = 1
+	}
+
+	for i := 1; i <= dayCount; i++ {
+		day := response_models.TravelDayPlan{
+			Day:        i,
+			Date:       time.Now().AddDate(0, 0, i-1).Format("2006-01-02"),
+			Title:      fmt.Sprintf("Day %d Adventure", i),
+			Theme:      p.generateDayTheme(i, destination),
+			Location:   destination,
+			Overview:   fmt.Sprintf("Explore the best of %s on day %d", destination, i),
+			Activities: []response_models.TravelActivity{},
+		}
+
+		// Add activities for this day
+		startIdx := (i - 1) * poisPerDay
+		endIdx := startIdx + poisPerDay
+		if i == dayCount {
+			endIdx = len(poiList) // Include remaining POIs in last day
+		}
+
+		periods := []string{"Morning", "Afternoon", "Evening"}
+		periodIdx := 0
+
+		for j := startIdx; j < endIdx && j < len(poiList); j++ {
+			poi := poiList[j]
+			period := periods[periodIdx%len(periods)]
+
+			activity := response_models.TravelActivity{
+				Title: fmt.Sprintf("%s Exploration", period),
+				TimeBlock: response_models.TimeBlock{
+					Period:      period,
+					StartTime:   fmt.Sprintf("%02d:00", 9+(periodIdx*3)),
+					EndTime:     fmt.Sprintf("%02d:00", 12+(periodIdx*3)),
+					Description: fmt.Sprintf("%s activities in %s", period, destination),
+				},
+				MainPOI:     poi,
+				Description: fmt.Sprintf("Visit %s and explore the surrounding area", poi.Name),
+				Highlights:  []string{poi.Name, "Local exploration", "Photo opportunities"},
+				TravelTips:  []string{"Bring comfortable walking shoes", "Check opening hours"},
+			}
+
+			day.Activities = append(day.Activities, activity)
+			periodIdx++
+		}
+
+		itinerary.Days = append(itinerary.Days, day)
+	}
+
+	return itinerary
+}
+
+// Clean JSON response helper
+func (p *PromptService) cleanJSONResponse(response string) string {
+	// Remove markdown formatting
+	response = strings.ReplaceAll(response, "```json", "")
+	response = strings.ReplaceAll(response, "```JSON", "")
+	response = strings.ReplaceAll(response, "```", "")
+
+	// Trim whitespace
+	response = strings.TrimSpace(response)
+
+	// Find JSON boundaries
+	start := strings.Index(response, "{")
+	if start == -1 {
+		return response
+	}
+
+	// Find matching closing brace
+	depth := 0
+	inString := false
+	escaped := false
+
+	for i := start; i < len(response); i++ {
+		char := response[i]
+
+		if escaped {
+			escaped = false
 			continue
 		}
 
-		// Add regular activities
-		currentActivities = append(currentActivities, block)
-	}
-
-	// Add the last day
-	if len(currentActivities) > 0 {
-		dailyPlan := response_models.DailyPlan{
-			Day:  currentDay,
-			Date: time.Now().AddDate(0, 0, currentDay-1).Format("2006-01-02"),
-			//Stay:       p.generateStayOption(baseLocation, currentDay),
-			Activities: currentActivities,
+		if char == '\\' && inString {
+			escaped = true
+			continue
 		}
-		dailyPlans = append(dailyPlans, dailyPlan)
-	}
 
-	// Ensure we have the expected number of days
-	for len(dailyPlans) < dayCount {
-		dayNum := len(dailyPlans) + 1
-		dailyPlan := response_models.DailyPlan{
-			Day:  dayNum,
-			Date: time.Now().AddDate(0, 0, dayNum-1).Format("2006-01-02"),
-			//Stay:   p.generateStayOption(baseLocation, dayNum),
-			Activities: []response_models.ActivityPlanBlock{
-				{
-					Activity:  "Free time",
-					StartTime: "09:00",
-					EndTime:   "18:00",
-					MainPOI: response_models.ActivityPOI{
-						Name:        "Free exploration",
-						Description: "Explore the area at your own pace",
-					},
-					WhatToDo: "Use this time to explore based on your interests",
-				},
-			},
+		if char == '"' {
+			inString = !inString
+			continue
 		}
-		dailyPlans = append(dailyPlans, dailyPlan)
+
+		if inString {
+			continue
+		}
+
+		switch char {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return response[start : i+1]
+			}
+		}
 	}
 
-	return dailyPlans
+	return response
+}
+
+// Helper methods for generating content
+func (p *PromptService) generateSubtitle(destination string, dayCount int) string {
+	if strings.Contains(destination, "Da Lat") {
+		return "A breezy, romantic escape into pine forests, French villas, and cool mountain air"
+	}
+	return fmt.Sprintf("Perfect for a %d-day memorable getaway!", dayCount)
+}
+
+func (p *PromptService) inferTravelStyle(prompt string) []string {
+	lower := strings.ToLower(prompt)
+	var styles []string
+
+	if strings.Contains(lower, "romantic") || strings.Contains(lower, "couple") {
+		styles = append(styles, "romantic")
+	}
+	if strings.Contains(lower, "nature") || strings.Contains(lower, "mountain") || strings.Contains(lower, "forest") {
+		styles = append(styles, "nature")
+	}
+	if strings.Contains(lower, "culture") || strings.Contains(lower, "temple") || strings.Contains(lower, "museum") {
+		styles = append(styles, "cultural")
+	}
+	if strings.Contains(lower, "adventure") || strings.Contains(lower, "hike") {
+		styles = append(styles, "adventure")
+	}
+	if strings.Contains(lower, "food") || strings.Contains(lower, "restaurant") {
+		styles = append(styles, "culinary")
+	}
+
+	if len(styles) == 0 {
+		styles = []string{"leisure", "sightseeing"}
+	}
+
+	return styles
+}
+
+func (p *PromptService) generateOverview(destination string, dayCount int) string {
+	return fmt.Sprintf("Perfect for a relaxed yet memorable %d-day getaway to %s!", dayCount, destination)
+}
+
+func (p *PromptService) generateDayTheme(day int, destination string) string {
+	themes := []string{
+		"Arrival and first impressions",
+		"Deep exploration and local experiences",
+		"Hidden gems and relaxation",
+		"Cultural immersion and adventure",
+		"Farewell and lasting memories",
+	}
+
+	if day <= len(themes) {
+		return themes[day-1]
+	}
+	return "Continued exploration"
 }
 
 // Extract day number from day separator text
@@ -467,78 +1600,6 @@ func (p *PromptService) validateJSONStructure(rawJSON string, expectedDays int) 
 
 		return true
 	}
-}
-
-// Improved multi-day plan parser with better error handling
-func (p *PromptService) parseMultiDayPlanImproved(rawJSON string, poiMap map[string]response_models.ActivityPOI, poiNameToID map[string]string) ([]response_models.ActivityPlanBlock, error) {
-	// First try to fix common JSON issues
-	rawJSON = p.cleanAndFixJSON(rawJSON)
-
-	var multiDayPlan struct {
-		Days []struct {
-			Day        int    `json:"day"`
-			Date       string `json:"date,omitempty"`
-			Activities []struct {
-				Activity          string   `json:"activity"`
-				StartTime         string   `json:"start_time"`
-				EndTime           string   `json:"end_time"`
-				MainPoiID         string   `json:"main_poi_id"`
-				AlternativePoiIDs []string `json:"alternative_poi_ids"`
-				WhatToDo          string   `json:"what_to_do"`
-			} `json:"activities"`
-		} `json:"days"`
-	}
-
-	if err := json.Unmarshal([]byte(rawJSON), &multiDayPlan); err != nil {
-		log.Printf("Failed to parse multi-day JSON: %v", err)
-		log.Printf("Raw JSON: %s", rawJSON)
-		return nil, fmt.Errorf("invalid multi-day plan JSON: %w", err)
-	}
-
-	if len(multiDayPlan.Days) == 0 {
-		return nil, fmt.Errorf("no days found in multi-day plan")
-	}
-
-	var allActivities []response_models.ActivityPlanBlock
-
-	for _, day := range multiDayPlan.Days {
-		// Add day separator
-		dayHeader := response_models.ActivityPlanBlock{
-			Activity:  fmt.Sprintf("Day %d", day.Day),
-			StartTime: "00:00",
-			EndTime:   "23:59",
-			MainPOI: response_models.ActivityPOI{
-				ID:          "",
-				Name:        fmt.Sprintf("Day %d Overview", day.Day),
-				Description: "Day planning overview",
-			},
-			WhatToDo: fmt.Sprintf("Activities for day %d", day.Day),
-		}
-		if day.Date != "" {
-			dayHeader.WhatToDo += fmt.Sprintf(" (%s)", day.Date)
-		}
-		allActivities = append(allActivities, dayHeader)
-
-		// Add activities for this day
-		if len(day.Activities) > 0 {
-			dayActivities := p.buildActivityBlocksImproved(day.Activities, poiMap, poiNameToID)
-			allActivities = append(allActivities, dayActivities...)
-		} else {
-			// Add placeholder if no activities
-			allActivities = append(allActivities, response_models.ActivityPlanBlock{
-				Activity:  "Free time",
-				StartTime: "09:00",
-				EndTime:   "18:00",
-				MainPOI: response_models.ActivityPOI{
-					Name:        "Free exploration",
-					Description: "Explore the area at your own pace",
-				},
-				WhatToDo: "Use this time to explore based on your interests",
-			})
-		}
-	}
-
-	return allActivities, nil
 }
 
 // Clean and fix common JSON issues
@@ -782,21 +1843,6 @@ func (p *PromptService) buildUltraExplicitAIPrompt(userPrompt string, poiTextLis
 	return prompt.String()
 }
 
-// Salvage response by creating a valid structure from partial data
-func (p *PromptService) salvageResponse(rawJSON string, expectedDays int, poiMap map[string]response_models.ActivityPOI) string {
-	log.Printf("Attempting to salvage response for %d days", expectedDays)
-
-	// Try to extract any activities we can find
-	var activities []interface{}
-	if err := json.Unmarshal([]byte(rawJSON), &activities); err == nil && len(activities) > 0 {
-		// We got a single-day format, convert to multi-day
-		return p.convertSingleToMultiDayJSON(activities, expectedDays)
-	}
-
-	// Create minimal valid response
-	return p.createFallbackPlan(expectedDays, poiMap)
-}
-
 // Convert single day activities to multi-day format
 func (p *PromptService) convertSingleToMultiDayJSON(activities []interface{}, expectedDays int) string {
 	activitiesPerDay := len(activities) / expectedDays
@@ -838,314 +1884,6 @@ func (p *PromptService) convertSingleToMultiDayJSON(activities []interface{}, ex
 
 	jsonBytes, _ := json.Marshal(result)
 	return string(jsonBytes)
-}
-
-// Create fallback plan when all else fails
-func (p *PromptService) createFallbackPlan(expectedDays int, poiMap map[string]response_models.ActivityPOI) string {
-	log.Printf("Creating fallback plan for %d days", expectedDays)
-
-	// Get first few POIs for the fallback
-	var availablePOIs []response_models.ActivityPOI
-	for _, poi := range poiMap {
-		availablePOIs = append(availablePOIs, poi)
-		if len(availablePOIs) >= expectedDays*2 { // 2 activities per day
-			break
-		}
-	}
-
-	if expectedDays == 1 {
-		// Create single day fallback
-		var activities []interface{}
-		for i, poi := range availablePOIs {
-			if i >= 3 { // Max 3 activities for single day
-				break
-			}
-			activity := map[string]interface{}{
-				"activity":            fmt.Sprintf("Visit %s", poi.Name),
-				"start_time":          fmt.Sprintf("%02d:00", 9+(i*3)),
-				"end_time":            fmt.Sprintf("%02d:30", 11+(i*3)),
-				"main_poi_id":         poi.ID,
-				"alternative_poi_ids": []string{},
-				"what_to_do":          poi.Description,
-			}
-			activities = append(activities, activity)
-		}
-
-		jsonBytes, _ := json.Marshal(activities)
-		return string(jsonBytes)
-	} else {
-		// Create multi-day fallback
-		var result struct {
-			Days []interface{} `json:"days"`
-		}
-
-		for day := 1; day <= expectedDays; day++ {
-			var dayActivities []interface{}
-
-			// Add 2 activities per day
-			for i := 0; i < 2 && (day-1)*2+i < len(availablePOIs); i++ {
-				poi := availablePOIs[(day-1)*2+i]
-				activity := map[string]interface{}{
-					"activity":            fmt.Sprintf("Visit %s", poi.Name),
-					"start_time":          fmt.Sprintf("%02d:00", 9+(i*4)),
-					"end_time":            fmt.Sprintf("%02d:30", 12+(i*4)),
-					"main_poi_id":         poi.ID,
-					"alternative_poi_ids": []string{},
-					"what_to_do":          poi.Description,
-				}
-				dayActivities = append(dayActivities, activity)
-			}
-
-			dayObj := map[string]interface{}{
-				"day":        day,
-				"date":       fmt.Sprintf("2024-01-%02d", day),
-				"activities": dayActivities,
-			}
-
-			result.Days = append(result.Days, dayObj)
-		}
-
-		jsonBytes, _ := json.Marshal(result)
-		return string(jsonBytes)
-	}
-}
-
-// Improved single day plan parser with fallback matching
-func (p *PromptService) parseSingleDayPlanImproved(rawJSON string, poiMap map[string]response_models.ActivityPOI, poiNameToID map[string]string) ([]response_models.ActivityPlanBlock, error) {
-	var skeleton []struct {
-		Activity          string   `json:"activity"`
-		StartTime         string   `json:"start_time"`
-		EndTime           string   `json:"end_time"`
-		MainPoiID         string   `json:"main_poi_id"`
-		AlternativePoiIDs []string `json:"alternative_poi_ids"`
-		WhatToDo          string   `json:"what_to_do"`
-	}
-
-	if err := json.Unmarshal([]byte(rawJSON), &skeleton); err != nil {
-		return nil, fmt.Errorf("invalid single-day plan JSON: %w", err)
-	}
-
-	return p.buildActivityBlocksImproved(skeleton, poiMap, poiNameToID), nil
-}
-
-// Improved activity block builder with better POI matching
-func (p *PromptService) buildActivityBlocksImproved(activities interface{}, poiMap map[string]response_models.ActivityPOI, poiNameToID map[string]string) []response_models.ActivityPlanBlock {
-	var finalPlan []response_models.ActivityPlanBlock
-
-	// Convert activities to the expected format
-	var activityList []struct {
-		Activity          string   `json:"activity"`
-		StartTime         string   `json:"start_time"`
-		EndTime           string   `json:"end_time"`
-		MainPoiID         string   `json:"main_poi_id"`
-		AlternativePoiIDs []string `json:"alternative_poi_ids"`
-		WhatToDo          string   `json:"what_to_do"`
-	}
-
-	// Handle different activity types
-	switch v := activities.(type) {
-	case []struct {
-		Activity          string   `json:"activity"`
-		StartTime         string   `json:"start_time"`
-		EndTime           string   `json:"end_time"`
-		MainPoiID         string   `json:"main_poi_id"`
-		AlternativePoiIDs []string `json:"alternative_poi_ids"`
-		WhatToDo          string   `json:"what_to_do"`
-	}:
-		activityList = v
-	default:
-		// Convert via JSON marshaling/unmarshaling
-		jsonData, _ := json.Marshal(activities)
-		json.Unmarshal(jsonData, &activityList)
-	}
-
-	for _, block := range activityList {
-		var mainPOI response_models.ActivityPOI
-		var found bool
-
-		// Try to find POI by ID first
-		if block.MainPoiID != "" {
-			mainPOI, found = poiMap[block.MainPoiID]
-		}
-
-		// If not found by ID, try to match by name from activity description
-		if !found {
-			foundID := p.findPOIByNameInActivity(block.Activity, block.WhatToDo, poiNameToID)
-			if foundID != "" {
-				mainPOI, found = poiMap[foundID]
-				log.Printf("Found POI by name matching: %s -> %s", block.Activity, foundID)
-			}
-		}
-
-		// If still not found, try to find the best matching POI from available ones
-		if !found && len(poiMap) > 0 {
-			bestMatch := p.findBestMatchingPOI(block.Activity, block.WhatToDo, poiMap)
-			if bestMatch.ID != "" {
-				mainPOI = bestMatch
-				found = true
-				log.Printf("Found POI by best match: %s -> %s", block.Activity, bestMatch.Name)
-			}
-		}
-
-		if !found {
-			log.Printf("Warning: No POI found for activity: %s, creating generic activity", block.Activity)
-			// Create a generic activity without POI
-			finalPlan = append(finalPlan, response_models.ActivityPlanBlock{
-				Activity:  block.Activity,
-				StartTime: block.StartTime,
-				EndTime:   block.EndTime,
-				MainPOI: response_models.ActivityPOI{
-					ID:          "",
-					Name:        extractLocationFromActivity(block.Activity),
-					Description: block.WhatToDo,
-				},
-				Alternatives: nil,
-				WhatToDo:     block.WhatToDo,
-			})
-			continue
-		}
-
-		// Find alternatives
-		var alts []response_models.ActivityPOI
-		for _, id := range block.AlternativePoiIDs {
-			if alt, ok := poiMap[id]; ok {
-				alts = append(alts, alt)
-			}
-		}
-
-		// If no alternatives found, suggest some from the same category/area
-		if len(alts) == 0 {
-			alts = p.findSuggestedAlternatives(mainPOI, poiMap, 2)
-		}
-
-		finalPlan = append(finalPlan, response_models.ActivityPlanBlock{
-			Activity:     block.Activity,
-			StartTime:    block.StartTime,
-			EndTime:      block.EndTime,
-			MainPOI:      mainPOI,
-			Alternatives: alts,
-			WhatToDo:     block.WhatToDo,
-		})
-	}
-
-	return finalPlan
-}
-
-// Find POI by matching names in activity description
-func (p *PromptService) findPOIByNameInActivity(activity, whatToDo string, poiNameToID map[string]string) string {
-	searchText := strings.ToLower(activity + " " + whatToDo)
-
-	for poiName, poiID := range poiNameToID {
-		// Check if POI name is mentioned in the activity
-		if strings.Contains(searchText, poiName) {
-			return poiID
-		}
-
-		// Also check for partial matches (for compound names)
-		parts := strings.Fields(poiName)
-		if len(parts) > 1 {
-			for _, part := range parts {
-				if len(part) > 3 && strings.Contains(searchText, part) {
-					return poiID
-				}
-			}
-		}
-	}
-
-	return ""
-}
-
-// Find best matching POI based on activity description
-func (p *PromptService) findBestMatchingPOI(activity, whatToDo string, poiMap map[string]response_models.ActivityPOI) response_models.ActivityPOI {
-	searchText := strings.ToLower(activity + " " + whatToDo)
-
-	var bestMatch response_models.ActivityPOI
-	maxScore := 0
-
-	for _, poi := range poiMap {
-		score := p.calculatePOIMatchScore(searchText, poi)
-		if score > maxScore {
-			maxScore = score
-			bestMatch = poi
-		}
-	}
-
-	return bestMatch
-}
-
-// Calculate match score between activity and POI
-func (p *PromptService) calculatePOIMatchScore(searchText string, poi response_models.ActivityPOI) int {
-	score := 0
-	poiText := strings.ToLower(poi.Name + " " + poi.Description)
-
-	// Check for direct name matches
-	if strings.Contains(searchText, strings.ToLower(poi.Name)) {
-		score += 10
-	}
-
-	// Check for tag matches
-	for _, tag := range poi.Tags {
-		tagLower := strings.ToLower(tag)
-		if strings.Contains(searchText, tagLower) {
-			score += 5
-		}
-	}
-
-	// Check for description keyword matches
-	keywords := []string{"temple", "pagoda", "lake", "fall", "market", "palace", "garden", "museum"}
-	for _, keyword := range keywords {
-		if strings.Contains(searchText, keyword) && strings.Contains(poiText, keyword) {
-			score += 3
-		}
-	}
-
-	return score
-}
-
-// Find suggested alternatives from the same category or nearby POIs
-func (p *PromptService) findSuggestedAlternatives(mainPOI response_models.ActivityPOI, poiMap map[string]response_models.ActivityPOI, maxAlts int) []response_models.ActivityPOI {
-	var alternatives []response_models.ActivityPOI
-
-	for _, poi := range poiMap {
-		if poi.ID == mainPOI.ID {
-			continue // Skip the main POI itself
-		}
-
-		// Prefer POIs from the same category
-		if poi.CategoryID == mainPOI.CategoryID {
-			alternatives = append(alternatives, poi)
-			if len(alternatives) >= maxAlts {
-				break
-			}
-		}
-	}
-
-	// If not enough alternatives from same category, add others
-	if len(alternatives) < maxAlts {
-		for _, poi := range poiMap {
-			if poi.ID == mainPOI.ID {
-				continue
-			}
-
-			// Skip if already added
-			alreadyAdded := false
-			for _, alt := range alternatives {
-				if alt.ID == poi.ID {
-					alreadyAdded = true
-					break
-				}
-			}
-
-			if !alreadyAdded {
-				alternatives = append(alternatives, poi)
-				if len(alternatives) >= maxAlts {
-					break
-				}
-			}
-		}
-	}
-
-	return alternatives
 }
 
 // Extract location name from activity description as fallback
@@ -1218,18 +1956,6 @@ Return JSON in this exact format:
 	}
 
 	return p.aiService.GenerateStructuredPlan(ctx, instruction, poiTextList, dayCount)
-}
-
-// Improved method to validate and fix POI IDs in the response
-func (p *PromptService) validateAndFixPOIIDs(rawJSON string, poiMap map[string]response_models.ActivityPOI) string {
-	// If the AI returns POI names instead of IDs, try to fix them
-	for poiID, poi := range poiMap {
-		// Replace POI names with their IDs in the JSON
-		rawJSON = strings.ReplaceAll(rawJSON, fmt.Sprintf(`"%s"`, poi.Name), fmt.Sprintf(`"%s"`, poiID))
-		rawJSON = strings.ReplaceAll(rawJSON, fmt.Sprintf(`"%s"`, strings.ToLower(poi.Name)), fmt.Sprintf(`"%s"`, poiID))
-	}
-
-	return rawJSON
 }
 
 // Multi-strategy POI finding
@@ -1380,142 +2106,4 @@ func (p *PromptService) mergePOIsWithoutDuplicates(existing, new []*db_models.PO
 	}
 
 	return result
-}
-
-// Parse single day plan
-func (p *PromptService) parseSingleDayPlan(rawJSON string, poiMap map[string]response_models.ActivityPOI) ([]response_models.ActivityPlanBlock, error) {
-	var skeleton []struct {
-		Activity          string   `json:"activity"`
-		StartTime         string   `json:"start_time"`
-		EndTime           string   `json:"end_time"`
-		MainPoiID         string   `json:"main_poi_id"`
-		AlternativePoiIDs []string `json:"alternative_poi_ids"`
-		WhatToDo          string   `json:"what_to_do"`
-	}
-
-	if err := json.Unmarshal([]byte(rawJSON), &skeleton); err != nil {
-		return nil, fmt.Errorf("invalid single-day plan JSON: %w", err)
-	}
-
-	return p.buildActivityBlocks(skeleton, poiMap), nil
-}
-
-// Parse multi-day plan
-func (p *PromptService) parseMultiDayPlan(rawJSON string, poiMap map[string]response_models.ActivityPOI) ([]response_models.ActivityPlanBlock, error) {
-	var multiDayPlan struct {
-		Days []struct {
-			Day        int    `json:"day"`
-			Date       string `json:"date,omitempty"`
-			Activities []struct {
-				Activity          string   `json:"activity"`
-				StartTime         string   `json:"start_time"`
-				EndTime           string   `json:"end_time"`
-				MainPoiID         string   `json:"main_poi_id"`
-				AlternativePoiIDs []string `json:"alternative_poi_ids"`
-				WhatToDo          string   `json:"what_to_do"`
-			} `json:"activities"`
-		} `json:"days"`
-	}
-
-	if err := json.Unmarshal([]byte(rawJSON), &multiDayPlan); err != nil {
-		return nil, fmt.Errorf("invalid multi-day plan JSON: %w", err)
-	}
-
-	var allActivities []response_models.ActivityPlanBlock
-
-	for _, day := range multiDayPlan.Days {
-		// Add day separator
-		dayHeader := response_models.ActivityPlanBlock{
-			Activity:  fmt.Sprintf("Day %d", day.Day),
-			StartTime: "00:00",
-			EndTime:   "23:59",
-			WhatToDo:  fmt.Sprintf("Activities for day %d", day.Day),
-		}
-		if day.Date != "" {
-			dayHeader.WhatToDo += fmt.Sprintf(" (%s)", day.Date)
-		}
-		allActivities = append(allActivities, dayHeader)
-
-		// Add activities for this day
-		dayActivities := p.buildActivityBlocks(day.Activities, poiMap)
-		allActivities = append(allActivities, dayActivities...)
-	}
-
-	return allActivities, nil
-}
-
-// Build activity blocks
-func (p *PromptService) buildActivityBlocks(activities interface{}, poiMap map[string]response_models.ActivityPOI) []response_models.ActivityPlanBlock {
-	var finalPlan []response_models.ActivityPlanBlock
-
-	// Convert activities to the expected format
-	var activityList []struct {
-		Activity          string   `json:"activity"`
-		StartTime         string   `json:"start_time"`
-		EndTime           string   `json:"end_time"`
-		MainPoiID         string   `json:"main_poi_id"`
-		AlternativePoiIDs []string `json:"alternative_poi_ids"`
-		WhatToDo          string   `json:"what_to_do"`
-	}
-
-	// Handle different activity types
-	switch v := activities.(type) {
-	case []struct {
-		Activity          string   `json:"activity"`
-		StartTime         string   `json:"start_time"`
-		EndTime           string   `json:"end_time"`
-		MainPoiID         string   `json:"main_poi_id"`
-		AlternativePoiIDs []string `json:"alternative_poi_ids"`
-		WhatToDo          string   `json:"what_to_do"`
-	}:
-		activityList = v
-	default:
-		// Convert via JSON marshaling/unmarshaling
-		jsonData, _ := json.Marshal(activities)
-		json.Unmarshal(jsonData, &activityList)
-	}
-
-	for _, block := range activityList {
-		mainPOI, ok := poiMap[block.MainPoiID]
-		if !ok {
-			log.Printf("Warning: POI %s not found, skipping activity: %s", block.MainPoiID, block.Activity)
-			continue
-		}
-
-		var alts []response_models.ActivityPOI
-		for _, id := range block.AlternativePoiIDs {
-			if alt, ok := poiMap[id]; ok {
-				alts = append(alts, alt)
-			}
-		}
-
-		finalPlan = append(finalPlan, response_models.ActivityPlanBlock{
-			Activity:     block.Activity,
-			StartTime:    block.StartTime,
-			EndTime:      block.EndTime,
-			MainPOI:      mainPOI,
-			Alternatives: alts,
-			WhatToDo:     block.WhatToDo,
-		})
-	}
-
-	return finalPlan
-}
-
-func flattenTags(tags []*db_models.Tag) []string {
-	var out []string
-	for _, tag := range tags {
-		if tag == nil {
-			continue
-		}
-		// Combine both language names (e.g., "waterfall/thác nước")
-		if tag.EnName != "" && tag.ViName != "" {
-			out = append(out, fmt.Sprintf("%s/%s", tag.EnName, tag.ViName))
-		} else if tag.EnName != "" {
-			out = append(out, tag.EnName)
-		} else if tag.ViName != "" {
-			out = append(out, tag.ViName)
-		}
-	}
-	return out
 }

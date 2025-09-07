@@ -13,3 +13,10 @@ type UserInputPrompt struct {
 type UserInputWildcard struct {
 	Prompt string `json:"prompt"`
 }
+
+type POISummary struct {
+	ID,
+	Name,
+	Category string
+	Description string
+}
