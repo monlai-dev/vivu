@@ -41,10 +41,11 @@ type PersonalizedRecommendation struct {
 }
 
 type PlanOnly struct {
-	Destination string        `json:"destination"`
-	Duration    int           `json:"duration_days"`
-	Days        []PlanOnlyDay `json:"days"`
-	CreatedAt   time.Time     `json:"created_at"`
+	Destination    string         `json:"destination"`
+	Duration       int            `json:"duration_days"`
+	Days           []PlanOnlyDay  `json:"days"`
+	CreatedAt      time.Time      `json:"created_at"`
+	DistanceMatrix DistanceMatrix `json:"distance_matrix,omitempty"`
 }
 
 type PlanOnlyDay struct {
@@ -56,8 +57,15 @@ type PlanOnlyActivity struct {
 	StartTime string `json:"start_time"` // "09:00"
 	EndTime   string `json:"end_time"`   // "11:00"
 	MainPOIID string `json:"main_poi_id"`
-	// Optional future fields:
-	// WindowStart, WindowEnd, AltPOIIDs []string
 
 	MainPOI *POI `json:"main_poi,omitempty"`
+
+	DistanceToNextMeters *int   `json:"distance_to_next_meters,omitempty"`
+	NextLegMapURL        string `json:"next_leg_map_url,omitempty"`
 }
+
+type MatrixEdge struct {
+	DistanceMeters int `json:"distance_meters"`
+}
+
+type DistanceMatrix map[string]map[string]MatrixEdge

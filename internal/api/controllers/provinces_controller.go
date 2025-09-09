@@ -18,6 +18,17 @@ func NewProvincesController(provinceService services.ProvinceServiceInterface) *
 	}
 }
 
+// GetAllProvinces godoc
+// @Summary Get all provinces
+// @Description Fetch a paginated list of provinces
+// @Tags Provinces
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param pageSize query int false "Page size (default: 5, max: 100)"
+// @Success 200 {object} response_models.ProvinceResponse
+// @Failure 400 {object} utils.APIResponse
+// @Router /provinces/list-all [get]
 func (p *ProvincesController) GetAllProvinces(c *gin.Context) {
 
 	pageStr := c.DefaultQuery("page", "1")

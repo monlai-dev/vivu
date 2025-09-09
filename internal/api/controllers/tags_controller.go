@@ -20,6 +20,15 @@ func NewTagController(tagService services.TagServiceInterface) *TagController {
 	}
 }
 
+// ListAllTagsHandler godoc
+// @Summary List all tags
+// @Description Fetch a paginated list of all tags
+// @Tags Tags
+// @Param page query int false "Page number" default(1)
+// @Param pageSize query int false "Page size" default(5) minimum(1) maximum(100)
+// @Success 200 {array} response_models.TagResponse
+// @Failure 400 {object} utils.APIResponse
+// @Router /tags/list-all [get]
 func (tc *TagController) ListAllTagsHandler(c *gin.Context) {
 	// 1. Parse query parameters
 	pageStr := c.DefaultQuery("page", "1")

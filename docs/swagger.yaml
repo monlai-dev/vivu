@@ -1,0 +1,383 @@
+definitions:
+  request_models.PlanOnlyRequest:
+    properties:
+      session_id:
+        type: string
+    type: object
+  request_models.QuizQuestion:
+    properties:
+      category:
+        description: '"destination", "budget", "activities", "accommodation", "dining",
+          "travel_style"'
+        type: string
+      id:
+        type: string
+      max_value:
+        type: integer
+      min_value:
+        type: integer
+      options:
+        items:
+          type: string
+        type: array
+      placeholder:
+        type: string
+      question:
+        type: string
+      required:
+        type: boolean
+      type:
+        description: '"single_choice", "multiple_choice", "text", "range"'
+        type: string
+    type: object
+  request_models.QuizRequest:
+    properties:
+      answers:
+        additionalProperties:
+          type: string
+        type: object
+      session_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+  request_models.QuizStartRequest:
+    properties:
+      user_id:
+        type: string
+    type: object
+  response_models.DistanceMatrix:
+    additionalProperties:
+      additionalProperties:
+        $ref: '#/definitions/response_models.MatrixEdge'
+      type: object
+    type: object
+  response_models.MatrixEdge:
+    properties:
+      distance_meters:
+        type: integer
+    type: object
+  response_models.POI:
+    properties:
+      address:
+        type: string
+      category:
+        type: string
+      contact_info:
+        type: string
+      distance_to_next_meters:
+        type: integer
+      id:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      next_leg_map_url:
+        type: string
+      opening_hours:
+        type: string
+      poi_details:
+        $ref: '#/definitions/response_models.PoiDetails'
+    type: object
+  response_models.PlanOnly:
+    properties:
+      created_at:
+        type: string
+      days:
+        items:
+          $ref: '#/definitions/response_models.PlanOnlyDay'
+        type: array
+      destination:
+        type: string
+      distance_matrix:
+        $ref: '#/definitions/response_models.DistanceMatrix'
+      duration_days:
+        type: integer
+    type: object
+  response_models.PlanOnlyActivity:
+    properties:
+      distance_to_next_meters:
+        type: integer
+      end_time:
+        description: '"11:00"'
+        type: string
+      main_poi:
+        $ref: '#/definitions/response_models.POI'
+      main_poi_id:
+        type: string
+      next_leg_map_url:
+        type: string
+      start_time:
+        description: '"09:00"'
+        type: string
+    type: object
+  response_models.PlanOnlyDay:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/response_models.PlanOnlyActivity'
+        type: array
+      day:
+        type: integer
+    type: object
+  response_models.PoiDetails:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+    type: object
+  response_models.ProvinceResponse:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  response_models.QuizResponse:
+    properties:
+      current_step:
+        type: integer
+      is_complete:
+        type: boolean
+      next_endpoint:
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/request_models.QuizQuestion'
+        type: array
+      session_id:
+        type: string
+      total_steps:
+        type: integer
+    type: object
+  response_models.TagResponse:
+    properties:
+      en:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      vi:
+        type: string
+    type: object
+  utils.APIResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      status:
+        type: string
+      trace_id:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /pois/pois-details/{id}:
+    get:
+      description: Fetch a Point of Interest (POI) by its ID
+      parameters:
+      - description: POI ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.POI'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Get POI by ID
+      tags:
+      - POIs
+  /pois/provinces/{provinceId}:
+    get:
+      description: Fetch a list of POIs by province ID with pagination
+      parameters:
+      - description: Province ID
+        in: path
+        name: provinceId
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response_models.POI'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Get POIs by Province
+      tags:
+      - POIs
+  /prompt/quiz/answer:
+    post:
+      consumes:
+      - application/json
+      description: Process answers for a quiz session
+      parameters:
+      - description: Quiz answers and session ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.QuizRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.QuizResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Submit quiz answers
+      tags:
+      - Prompt
+  /prompt/quiz/plan-only:
+    post:
+      consumes:
+      - application/json
+      description: Generate a travel plan based on session ID
+      parameters:
+      - description: Session ID for plan generation
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.PlanOnlyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.PlanOnly'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Generate a travel plan without quiz
+      tags:
+      - Prompt
+  /prompt/quiz/start:
+    post:
+      consumes:
+      - application/json
+      description: Start a quiz session for the user
+      parameters:
+      - description: User ID for quiz session
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.QuizStartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.QuizResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Start a travel quiz
+      tags:
+      - Prompt
+  /provinces/list-all:
+    get:
+      consumes:
+      - application/json
+      description: Fetch a paginated list of provinces
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 5, max: 100)'
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.ProvinceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Get all provinces
+      tags:
+      - Provinces
+  /tags/list-all:
+    get:
+      description: Fetch a paginated list of all tags
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response_models.TagResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: List all tags
+      tags:
+      - Tags
+swagger: "2.0"

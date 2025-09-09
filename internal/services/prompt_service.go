@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"log"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -39,6 +40,7 @@ type PromptService struct {
 	poisRepo     repositories.POIRepository
 	quizSessions map[string]*QuizSession
 	sessionMutex sync.RWMutex
+	matrixSvc    DistanceMatrixService
 }
 
 func NewPromptService(
@@ -47,6 +49,7 @@ func NewPromptService(
 	aiService utils.EmbeddingClientInterface,
 	embededRepo repositories.IPoiEmbededRepository,
 	poisRepo repositories.POIRepository,
+	matrixSvc DistanceMatrixService,
 
 ) PromptServiceInterface {
 	return &PromptService{
@@ -55,6 +58,7 @@ func NewPromptService(
 		aiService:   aiService,
 		embededRepo: embededRepo,
 		poisRepo:    poisRepo,
+		matrixSvc:   matrixSvc,
 	}
 }
 
@@ -167,19 +171,98 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) 
 		}
 	}
 
-	log.Printf("Built POI response map in %.3f ms", time.Since(startTime).Seconds())
-	// 4) stitch enrichment back into plan
 	for di := range plan.Days {
 		for ai := range plan.Days[di].Activities {
 			poid := plan.Days[di].Activities[ai].MainPOIID
-			if p, ok := respByID[poid]; ok {
-				plan.Days[di].Activities[ai].MainPOI = &p
+			if poid == "" {
+				continue
 			}
+			if pinfo, ok := respByID[poid]; ok {
+				// Tránh lấy địa chỉ của biến vòng lặp: tạo bản sao riêng
+				poiCopy := pinfo
+				plan.Days[di].Activities[ai].MainPOI = &poiCopy
+			}
+		}
+	}
+
+	// Thu thập idList để gọi Matrix
+	idList := make([]string, 0, len(respByID))
+	for id := range respByID {
+		idList = append(idList, id)
+	}
+
+	// Chuẩn bị điểm cho Matrix
+	points := make([]MatrixPoint, 0, len(idList))
+	for _, id := range idList {
+		poi := respByID[id]
+		points = append(points, MatrixPoint{
+			ID:  id,
+			Lat: poi.Latitude,
+			Lng: poi.Longitude,
+		})
+	}
+
+	// [MATRIX] 2) Gọi Mapbox Matrix để lấy DistanceMatrix
+	distMat, err := p.matrixSvc.ComputeDistances(ctx, points)
+	if err != nil {
+		log.Printf("Mapbox matrix error: %v", err)
+	} else {
+		plan.DistanceMatrix = make(response_models.DistanceMatrix, len(distMat))
+		for fromID, row := range distMat {
+			if _, ok := plan.DistanceMatrix[fromID]; !ok {
+				plan.DistanceMatrix[fromID] = map[string]response_models.MatrixEdge{}
+			}
+			for toID, edge := range row {
+				plan.DistanceMatrix[fromID][toID] = response_models.MatrixEdge{
+					DistanceMeters: edge.DistanceMeters,
+				}
+			}
+		}
+	}
+
+	// [LEGS] 3) Gán distance & Google URL cho leg liền kề (A->B) trong từng ngày
+	for di := range plan.Days {
+		acts := plan.Days[di].Activities
+		for ai := 0; ai+1 < len(acts); ai++ {
+			from := plan.Days[di].Activities[ai].MainPOI
+			to := plan.Days[di].Activities[ai+1].MainPOI
+			if from == nil || to == nil {
+				continue
+			}
+
+			// Distance từ matrix (nếu có)
+			var dPtr *int
+			if plan.DistanceMatrix != nil {
+				if row, ok := plan.DistanceMatrix[from.ID]; ok {
+					if cell, ok := row[to.ID]; ok {
+						d := cell.DistanceMeters
+						dPtr = &d
+						plan.Days[di].Activities[ai].DistanceToNextMeters = dPtr
+					}
+				}
+			}
+
+			// Google Maps URL
+			url := BuildGoogleDirURL(from.Latitude, from.Longitude, to.Latitude, to.Longitude)
+			plan.Days[di].Activities[ai].NextLegMapURL = url
+
+			// (Tuỳ chọn) Copy leg info sang chính MainPOI để FE đọc ngay trong POI:
+			from.DistanceToNextMeters = dPtr
+			from.NextLegMapURL = url
 		}
 	}
 
 	plan.CreatedAt = time.Now()
 	return &plan, nil
+}
+
+func BuildGoogleDirURL(originLat, originLng, destLat, destLng float64) string {
+	q := url.Values{}
+	q.Set("api", "1")
+	q.Set("origin", fmt.Sprintf("%f,%f", originLat, originLng))
+	q.Set("destination", fmt.Sprintf("%f,%f", destLat, destLng))
+	q.Set("travelmode", "driving")
+	return "https://www.google.com/maps/dir/?" + q.Encode()
 }
 
 // StartTravelQuiz initiates a new quiz session

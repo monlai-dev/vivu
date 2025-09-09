@@ -4,16 +4,20 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/fx"
 	"log"
 	"os"
 	"vivu/cmd/fx/controllers_fx"
 	"vivu/cmd/fx/db_fx"
+	"vivu/cmd/fx/distance_matrix_fx"
 	"vivu/cmd/fx/poi_embedded_fx"
 	"vivu/cmd/fx/pois_fx"
 	"vivu/cmd/fx/prompt_fx"
 	"vivu/cmd/fx/province_fx"
 	"vivu/cmd/fx/tags_fx"
+	docs "vivu/docs"
 	"vivu/internal/api/controllers"
 	"vivu/internal/infra"
 	"vivu/pkg/middleware"
@@ -36,9 +40,11 @@ func main() {
 		prompt_fx.Module,
 		poi_embedded_fx.Module,
 		province_fx.Module,
+		distance_matrix_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
+		fx.Invoke(SetupSwagger),
 	)
 
 	app.Run()
@@ -78,6 +84,16 @@ func ProvideRouter(
 	RegisterRoutes(r, poisController, tagsController, promptController, provinceController)
 
 	return r
+}
+
+func SetupSwagger(router *gin.Engine) {
+
+	docs.SwaggerInfo.Title = "Vivu API"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"http"} // local
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
 func RegisterRoutes(r *gin.Engine,

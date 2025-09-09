@@ -10,6 +10,9 @@ type POI struct {
 	ContactInfo  string      `json:"contact_info"`
 	Address      string      `json:"address"`
 	PoiDetails   *PoiDetails `json:"poi_details"`
+
+	DistanceToNextMeters *int   `json:"distance_to_next_meters,omitempty"`
+	NextLegMapURL        string `json:"next_leg_map_url,omitempty"`
 }
 
 type PoiDetails struct {
