@@ -1,0 +1,668 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/pois/create-poi": {
+            "post": {
+                "description": "Create a new Point of Interest (POI)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Create a new POI",
+                "parameters": [
+                    {
+                        "description": "POI creation payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.CreatePoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pois/pois-details/{id}": {
+            "get": {
+                "description": "Fetch a Point of Interest (POI) by its ID",
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Get POI by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POI ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.POI"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pois/provinces/{provinceId}": {
+            "get": {
+                "description": "Fetch a list of POIs by province ID with pagination",
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Get POIs by Province",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Province ID",
+                        "name": "provinceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response_models.POI"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/prompt/quiz/answer": {
+            "post": {
+                "description": "Process answers for a quiz session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prompt"
+                ],
+                "summary": "Submit quiz answers",
+                "parameters": [
+                    {
+                        "description": "Quiz answers and session ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.QuizRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.QuizResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/prompt/quiz/plan-only": {
+            "post": {
+                "description": "Generate a travel plan based on session ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prompt"
+                ],
+                "summary": "Generate a travel plan without quiz",
+                "parameters": [
+                    {
+                        "description": "Session ID for plan generation",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.PlanOnlyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.PlanOnly"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/prompt/quiz/start": {
+            "post": {
+                "description": "Start a quiz session for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prompt"
+                ],
+                "summary": "Start a travel quiz",
+                "parameters": [
+                    {
+                        "description": "User ID for quiz session",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.QuizStartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.QuizResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/provinces/list-all": {
+            "get": {
+                "description": "Fetch a paginated list of provinces",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Provinces"
+                ],
+                "summary": "Get all provinces",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default: 5, max: 100)",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.ProvinceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tags/list-all": {
+            "get": {
+                "description": "Fetch a paginated list of all tags",
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "List all tags",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response_models.TagResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "request_models.CreatePoiRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "contact_info": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "opening_hours": {
+                    "type": "string"
+                },
+                "poi_details": {
+                    "$ref": "#/definitions/request_models.PoiDetails"
+                },
+                "province": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.PlanOnlyRequest": {
+            "type": "object",
+            "properties": {
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.PoiDetails": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "request_models.QuizQuestion": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "description": "\"destination\", \"budget\", \"activities\", \"accommodation\", \"dining\", \"travel_style\"",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "max_value": {
+                    "type": "integer"
+                },
+                "min_value": {
+                    "type": "integer"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "placeholder": {
+                    "type": "string"
+                },
+                "question": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "description": "\"single_choice\", \"multiple_choice\", \"text\", \"range\"",
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.QuizRequest": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.QuizStartRequest": {
+            "type": "object",
+            "properties": {
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "response_models.DistanceMatrix": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                    "$ref": "#/definitions/response_models.MatrixEdge"
+                }
+            }
+        },
+        "response_models.MatrixEdge": {
+            "type": "object",
+            "properties": {
+                "distance_meters": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response_models.POI": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "contact_info": {
+                    "type": "string"
+                },
+                "distance_to_next_meters": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "next_leg_map_url": {
+                    "type": "string"
+                },
+                "opening_hours": {
+                    "type": "string"
+                },
+                "poi_details": {
+                    "$ref": "#/definitions/response_models.PoiDetails"
+                }
+            }
+        },
+        "response_models.PlanOnly": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response_models.PlanOnlyDay"
+                    }
+                },
+                "destination": {
+                    "type": "string"
+                },
+                "distance_matrix": {
+                    "$ref": "#/definitions/response_models.DistanceMatrix"
+                },
+                "duration_days": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response_models.PlanOnlyActivity": {
+            "type": "object",
+            "properties": {
+                "distance_to_next_meters": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "description": "\"11:00\"",
+                    "type": "string"
+                },
+                "main_poi": {
+                    "$ref": "#/definitions/response_models.POI"
+                },
+                "main_poi_id": {
+                    "type": "string"
+                },
+                "next_leg_map_url": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "description": "\"09:00\"",
+                    "type": "string"
+                }
+            }
+        },
+        "response_models.PlanOnlyDay": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response_models.PlanOnlyActivity"
+                    }
+                },
+                "day": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response_models.PoiDetails": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "response_models.ProvinceResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "response_models.QuizResponse": {
+            "type": "object",
+            "properties": {
+                "current_step": {
+                    "type": "integer"
+                },
+                "is_complete": {
+                    "type": "boolean"
+                },
+                "next_endpoint": {
+                    "type": "string"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/request_models.QuizQuestion"
+                    }
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "total_steps": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response_models.TagResponse": {
+            "type": "object",
+            "properties": {
+                "en": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "vi": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.APIResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "trace_id": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

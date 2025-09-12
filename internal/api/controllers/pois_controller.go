@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"vivu/internal/models/request_models"
 	"vivu/internal/services"
 	"vivu/pkg/utils"
 )
@@ -18,6 +20,14 @@ func NewPOIsController(poiService services.POIServiceInterface) *POIsController 
 	}
 }
 
+// GetPoiById godoc
+// @Summary Get POI by ID
+// @Description Fetch a Point of Interest (POI) by its ID
+// @Tags POIs
+// @Param id path string true "POI ID"
+// @Success 200 {object} response_models.POI
+// @Failure 404 {object} utils.APIResponse
+// @Router /pois/pois-details/{id} [get]
 func (p *POIsController) GetPoiById(c *gin.Context) {
 	poiId := c.Param("id")
 	if poiId == "" {
@@ -34,6 +44,17 @@ func (p *POIsController) GetPoiById(c *gin.Context) {
 	utils.RespondSuccess(c, poi, "POI fetched successfully")
 }
 
+// GetPoisByProvince godoc
+// @Summary Get POIs by Province
+// @Description Fetch a list of POIs by province ID with pagination
+// @Tags POIs
+// @Param provinceId path string true "Province ID"
+// @Param page query int false "Page number" default(1)
+// @Param pageSize query int false "Page size" default(5) minimum(1) maximum(100)
+// @Success 200 {array} response_models.POI
+// @Failure 400 {object} utils.APIResponse
+// @Failure 404 {object} utils.APIResponse
+// @Router /pois/provinces/{provinceId} [get]
 func (p *POIsController) GetPoisByProvince(c *gin.Context) {
 	provinceId := c.Param("provinceId")
 	if provinceId == "" {
@@ -63,4 +84,32 @@ func (p *POIsController) GetPoisByProvince(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, pois, "POIs fetched successfully")
+}
+
+// CreatePoi godoc
+// @Summary Create a new POI
+// @Description Create a new Point of Interest (POI)
+// @Tags POIs
+// @Accept json
+// @Produce json
+// @Param request body request_models.CreatePoiRequest true "POI creation payload"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Router /pois/create-poi [post]
+func (p *POIsController) CreatePoi(c *gin.Context) {
+	var req request_models.CreatePoiRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx := context.Background()
+
+	if err := p.poiService.CreatePois(req, ctx); err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, nil, "POI created successfully")
 }

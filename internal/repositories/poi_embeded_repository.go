@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
 	"vivu/internal/models/db_models"
@@ -27,19 +26,16 @@ func (p *PoiEmbededRepository) GetListOfPoiEmbededByVector(vector pgvector.Vecto
 	vecStr := vector.String()
 
 	query := `
-		SELECT *
-		FROM poi_embeddings
-		ORDER BY embedding <#> $1
-		LIMIT 15
-	`
+        SELECT *, (1 - (embedding <=> $1)) as similarity
+        FROM poi_embeddings
+        WHERE (1 - (embedding <=> $1)) > 0.7  -- Only return results with >70% similarity
+        ORDER BY embedding <=> $1  -- Cosine distance (closer to 0 is better)
+        LIMIT 15
+    `
 
 	err := p.db.Raw(query, vecStr).Scan(&results).Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-
 		return nil, err
 	}
 	return results, nil

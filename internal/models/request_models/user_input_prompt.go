@@ -9,3 +9,14 @@ type UserInputPrompt struct {
 	EndTime        int64     `json:"end_time"`
 	Tags           []string  `json:"tags"`
 }
+
+type UserInputWildcard struct {
+	Prompt string `json:"prompt"`
+}
+
+type POISummary struct {
+	ID,
+	Name,
+	Category string
+	Description string
+}

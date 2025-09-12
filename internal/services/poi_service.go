@@ -3,6 +3,9 @@ package services
 import (
 	"context"
 	"github.com/google/uuid"
+	"log"
+	"vivu/internal/models/db_models"
+	"vivu/internal/models/request_models"
 	"vivu/internal/models/response_models"
 	"vivu/internal/repositories"
 	"vivu/pkg/utils"
@@ -11,10 +14,40 @@ import (
 type POIServiceInterface interface {
 	GetPOIById(id string, ctx context.Context) (response_models.POI, error)
 	GetPoisByProvince(province string, page, pageSize int, ctx context.Context) ([]response_models.POI, error)
+	CreatePois(pois request_models.CreatePoiRequest, ctx context.Context) error
 }
 
 type PoiService struct {
 	poiRepository repositories.POIRepository
+}
+
+func (p *PoiService) CreatePois(pois request_models.CreatePoiRequest, ctx context.Context) error {
+
+	newPOI := &db_models.POI{
+		Name:         pois.Name,
+		Latitude:     pois.Latitude,
+		Longitude:    pois.Longitude,
+		ProvinceID:   pois.Province,
+		CategoryID:   pois.Category,
+		OpeningHours: pois.OpeningHours,
+		ContactInfo:  pois.ContactInfo,
+		Address:      pois.Address,
+	}
+
+	if pois.PoiDetails != nil {
+		newPOI.Description = pois.PoiDetails.Description
+		newPOI.Details = db_models.POIDetail{
+			Images: pois.PoiDetails.Image,
+		}
+	}
+
+	if _, err := p.poiRepository.CreatePoi(ctx, newPOI); err != nil {
+		log.Printf("Error creating POI: %v", err)
+
+		return utils.ErrDatabaseError
+	}
+
+	return nil
 }
 
 func (p *PoiService) GetPOIById(id string, ctx context.Context) (response_models.POI, error) {

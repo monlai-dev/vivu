@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"vivu/internal/models/request_models"
 
 	"github.com/pgvector/pgvector-go"
 	openai "github.com/sashabaranov/go-openai"
@@ -11,12 +12,23 @@ import (
 type EmbeddingClientInterface interface {
 	GetEmbedding(ctx context.Context, text string) (pgvector.Vector, error)
 	GetEmbeddings(ctx context.Context, texts []string) ([]pgvector.Vector, error)
-	GenerateStructuredPlan(ctx context.Context, userPrompt string, pois []string) (string, error)
+	GenerateStructuredPlan(ctx context.Context, userPrompt string, pois []string, dayCount int) (string, error)
+	GeneratePlanOnlyJSON(
+		ctx context.Context,
+		profile any, // your TravelProfile or a lightweight struct
+		poiList []request_models.POISummary,
+		dayCount int,
+	) (string, error)
 }
 
 type OpenAIEmbeddingClient struct {
 	client *openai.Client
 	model  string
+}
+
+func (c *OpenAIEmbeddingClient) GeneratePlanOnlyJSON(ctx context.Context, profile any, poiList []request_models.POISummary, dayCount int) (string, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewOpenAIEmbeddingClient(apiKey, model string) EmbeddingClientInterface {
@@ -61,24 +73,39 @@ func (c *OpenAIEmbeddingClient) GetEmbeddings(ctx context.Context, texts []strin
 	return vectors, nil
 }
 
-func (c *OpenAIEmbeddingClient) GenerateStructuredPlan(ctx context.Context, userPrompt string, pois []string) (string, error) {
-	systemPrompt :=
-		`You are a travel planner AI.
+func (c *OpenAIEmbeddingClient) GenerateStructuredPlan(ctx context.Context, userPrompt string, pois []string, dayCount int) (string, error) {
+	var systemPrompt string
+	if dayCount > 1 {
+		systemPrompt = fmt.Sprintf(`You are a travel planner AI.
 
-		Given a list of Points of Interest (POIs), create a structured daily travel plan.
-		
-		Return a JSON array. Each item should have:
-		- activity: a short title
-		- start_time, end_time: 24-hour format (e.g. "09:00")
-		- main_poi_id: the primary POI for the activity
-		- what_to_do: a short description of the recommended activity at the main POI
-		- alternative_poi_ids: 2–3 optional POI IDs to swap in
-		
-		Constraints:
-		- Plan should run between 08:00 and 20:00.
-		- Each activity ~1.5–3 hours.
-		- Only use provided POI IDs. Do not invent new locations.
-		- Return valid JSON.`
+Generate a %d-day itinerary based on the user prompt and the list of POIs.
+
+Each day should include:
+- day: number
+- date: optional
+- activities: list of activity blocks
+- Each activity includes: activity, start_time, end_time, main_poi_id, alternative_poi_ids, what_to_do
+
+Only use the POI IDs provided. Do not invent new places.
+Return valid JSON.`, dayCount)
+	} else {
+		systemPrompt = `You are a travel planner AI.
+
+Given a list of Points of Interest (POIs), create a structured daily travel plan.
+
+Return a JSON array. Each item should have:
+- activity: a short title
+- start_time, end_time: 24-hour format (e.g. "09:00")
+- main_poi_id: the primary POI for the activity
+- what_to_do: a short description of the recommended activity at the POI
+- alternative_poi_ids: 2–3 optional POI IDs to swap in
+
+Constraints:
+- Plan should run between 08:00 and 20:00.
+- Each activity ~1.5–3 hours.
+- Only use provided POI IDs. Do not invent new locations.
+- Return valid JSON.`
+	}
 
 	poiList := ""
 	for _, poi := range pois {

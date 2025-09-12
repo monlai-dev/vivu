@@ -13,14 +13,25 @@ func InitPostgresql() *gorm.DB {
 
 	dsn := os.Getenv("POSTGRES_URL")
 
+	log.Printf("Connecting to PostgreSQL database with DSN: %s", dsn)
+
 	connectionPool, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		log.Printf("Error connecting to database: %v", err)
 		log.Fatal("Error connecting to database")
 	}
-
+	pgSingleton = connectionPool
 	return connectionPool
+}
+
+func MigratePostgresql(db *gorm.DB, models ...interface{}) {
+	err := db.AutoMigrate(models...)
+	if err != nil {
+		log.Printf("Error during migration: %v", err)
+		log.Fatal("Error during migration")
+	}
+	log.Println("Database migration completed successfully")
 }
 
 func ClosePostgresql(db *gorm.DB) {

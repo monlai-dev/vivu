@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"vivu/internal/models/db_models"
 	"vivu/internal/models/request_models"
 	"vivu/internal/models/response_models"
@@ -15,7 +16,7 @@ type TagServiceInterface interface {
 }
 
 type TagService struct {
-	tagRepo repositories.TagRepository
+	tagRepo repositories.TagRepositoryInterface
 }
 
 func (t *TagService) InsertTagTx(tag request_models.CreateTagRequest, ctx context.Context) error {
@@ -37,6 +38,7 @@ func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]
 	tags, err := t.tagRepo.GetAllTags(page, pageSize, ctx)
 	if err != nil {
 		//log the error for debugging
+		log.Printf("Database error occurred: %v", err)
 		return nil, utils.ErrDatabaseError
 	}
 
@@ -58,7 +60,7 @@ func (t *TagService) GetAllTags(page int, pageSize int, ctx context.Context) ([]
 	return tagResponses, nil
 }
 
-func NewTagService(tagRepo repositories.TagRepository) TagServiceInterface {
+func NewTagService(tagRepo repositories.TagRepositoryInterface) TagServiceInterface {
 	return &TagService{
 		tagRepo: tagRepo,
 	}

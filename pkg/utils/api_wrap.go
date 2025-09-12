@@ -14,6 +14,65 @@ type APIResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
+var errorHandlers = map[error]func(*gin.Context, string){
+	ErrTagNotFound: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusOK,
+			Message: "Tag not found",
+			TraceID: traceID,
+		})
+	},
+	ErrInvalidPage: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Status:  "error",
+			Code:    http.StatusBadRequest,
+			Message: "Page must be greater than 0",
+			TraceID: traceID,
+		})
+	},
+	ErrInvalidPageSize: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Status:  "error",
+			Code:    http.StatusBadRequest,
+			Message: "Page size must be between 1 and 100",
+			TraceID: traceID,
+		})
+	},
+	ErrDatabaseError: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusInternalServerError,
+			Message: "Internal server error",
+			TraceID: traceID,
+		})
+	},
+	ErrUnexpectedBehaviorOfAI: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusInternalServerError,
+			Message: "Unexpected error from AI service",
+			TraceID: traceID,
+		})
+	},
+	ErrPoorQualityInput: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "improve_input",
+			Code:    http.StatusBadRequest,
+			Message: "Input quality is too low please consider improving it so we can help you better",
+			TraceID: traceID,
+		})
+	},
+	ErrInvalidInput: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "bad Request",
+			Code:    http.StatusBadRequest,
+			Message: "Invalid input",
+			TraceID: traceID,
+		})
+	},
+}
+
 func RespondSuccess(c *gin.Context, data interface{}, message string) {
 	traceID, _ := c.Get("trace_id")
 	c.JSON(http.StatusOK, APIResponse{
@@ -39,47 +98,11 @@ func RespondError(c *gin.Context, code int, message string) {
 func HandleServiceError(c *gin.Context, err error) {
 	traceID, _ := c.Get("trace_id")
 
-	errorHandlers := map[error]func(*gin.Context, string){
-		ErrTagNotFound: func(c *gin.Context, traceID string) {
-			c.JSON(http.StatusNotFound, APIResponse{
-				Status:  "error",
-				Code:    http.StatusNotFound,
-				Message: "Tag not found",
-				TraceID: traceID,
-			})
-		},
-		ErrInvalidPage: func(c *gin.Context, traceID string) {
-			c.JSON(http.StatusBadRequest, APIResponse{
-				Status:  "error",
-				Code:    http.StatusBadRequest,
-				Message: "Page must be greater than 0",
-				TraceID: traceID,
-			})
-		},
-		ErrInvalidPageSize: func(c *gin.Context, traceID string) {
-			c.JSON(http.StatusBadRequest, APIResponse{
-				Status:  "error",
-				Code:    http.StatusBadRequest,
-				Message: "Page size must be between 1 and 100",
-				TraceID: traceID,
-			})
-		},
-		ErrDatabaseError: func(c *gin.Context, traceID string) {
-			log.Printf("Database error: %v", err)
-			c.JSON(http.StatusInternalServerError, APIResponse{
-				Status:  "error",
-				Code:    http.StatusInternalServerError,
-				Message: "Internal server error",
-				TraceID: traceID,
-			})
-		},
-	}
-
 	if handler, exists := errorHandlers[err]; exists {
 		handler(c, traceID.(string))
 	} else {
 		log.Printf("Unknown error: %v", err)
-		c.JSON(http.StatusInternalServerError, APIResponse{
+		c.JSON(http.StatusOK, APIResponse{
 			Status:  "error",
 			Code:    http.StatusInternalServerError,
 			Message: "Internal server error",
