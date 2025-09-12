@@ -25,6 +25,15 @@ func InitPostgresql() *gorm.DB {
 	return connectionPool
 }
 
+func MigratePostgresql(db *gorm.DB, models ...interface{}) {
+	err := db.AutoMigrate(models...)
+	if err != nil {
+		log.Printf("Error during migration: %v", err)
+		log.Fatal("Error during migration")
+	}
+	log.Println("Database migration completed successfully")
+}
+
 func ClosePostgresql(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err != nil {

@@ -15,6 +15,46 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/pois/create-poi": {
+            "post": {
+                "description": "Create a new Point of Interest (POI)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Create a new POI",
+                "parameters": [
+                    {
+                        "description": "POI creation payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.CreatePoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pois/pois-details/{id}": {
             "get": {
                 "description": "Fetch a Point of Interest (POI) by its ID",
@@ -313,11 +353,57 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "request_models.CreatePoiRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "contact_info": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "opening_hours": {
+                    "type": "string"
+                },
+                "poi_details": {
+                    "$ref": "#/definitions/request_models.PoiDetails"
+                },
+                "province": {
+                    "type": "string"
+                }
+            }
+        },
         "request_models.PlanOnlyRequest": {
             "type": "object",
             "properties": {
                 "session_id": {
                     "type": "string"
+                }
+            }
+        },
+        "request_models.PoiDetails": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

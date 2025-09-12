@@ -1,8 +1,38 @@
 definitions:
+  request_models.CreatePoiRequest:
+    properties:
+      address:
+        type: string
+      category:
+        type: string
+      contact_info:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      opening_hours:
+        type: string
+      poi_details:
+        $ref: '#/definitions/request_models.PoiDetails'
+      province:
+        type: string
+    type: object
   request_models.PlanOnlyRequest:
     properties:
       session_id:
         type: string
+    type: object
+  request_models.PoiDetails:
+    properties:
+      description:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
     type: object
   request_models.QuizQuestion:
     properties:
@@ -184,6 +214,32 @@ definitions:
 info:
   contact: {}
 paths:
+  /pois/create-poi:
+    post:
+      consumes:
+      - application/json
+      description: Create a new Point of Interest (POI)
+      parameters:
+      - description: POI creation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.CreatePoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Create a new POI
+      tags:
+      - POIs
   /pois/pois-details/{id}:
     get:
       description: Fetch a Point of Interest (POI) by its ID

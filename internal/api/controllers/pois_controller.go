@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"vivu/internal/models/request_models"
 	"vivu/internal/services"
 	"vivu/pkg/utils"
 )
@@ -82,4 +84,32 @@ func (p *POIsController) GetPoisByProvince(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, pois, "POIs fetched successfully")
+}
+
+// CreatePoi godoc
+// @Summary Create a new POI
+// @Description Create a new Point of Interest (POI)
+// @Tags POIs
+// @Accept json
+// @Produce json
+// @Param request body request_models.CreatePoiRequest true "POI creation payload"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Router /pois/create-poi [post]
+func (p *POIsController) CreatePoi(c *gin.Context) {
+	var req request_models.CreatePoiRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx := context.Background()
+
+	if err := p.poiService.CreatePois(req, ctx); err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, nil, "POI created successfully")
 }

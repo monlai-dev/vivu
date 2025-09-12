@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
@@ -9,6 +10,7 @@ import (
 	"go.uber.org/fx"
 	"log"
 	"os"
+	"path/filepath"
 	"vivu/cmd/fx/controllers_fx"
 	"vivu/cmd/fx/db_fx"
 	"vivu/cmd/fx/distance_matrix_fx"
@@ -20,14 +22,51 @@ import (
 	docs "vivu/docs"
 	"vivu/internal/api/controllers"
 	"vivu/internal/infra"
+	"vivu/internal/models/db_models"
 	"vivu/pkg/middleware"
 )
 
 func init() {
-	err := godotenv.Load(".env")
+	err := loadDotEnv()
 	if err != nil {
 		log.Fatalf("Error loading .env file, %v", err)
 	}
+}
+
+func init() {
+	if err := loadDotEnv(); err != nil {
+		log.Printf("No .env found (will use OS env): %v", err)
+	}
+}
+
+func loadDotEnv() error {
+	// Try a few common relative locations first
+	candidates := []string{".env", "../.env", "../../.env", "../../../.env"}
+
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return godotenv.Load(p)
+		}
+	}
+
+	// Fallback: walk up until we hit go.mod, then load .env there (project root)
+	wd, _ := os.Getwd()
+	dir := wd
+	for i := 0; i < 10; i++ { // safety bound
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			envPath := filepath.Join(dir, ".env")
+			if _, err := os.Stat(envPath); err == nil {
+				return godotenv.Load(envPath)
+			}
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return fmt.Errorf(".env not found from %q upward", wd)
 }
 
 func main() {
@@ -45,6 +84,7 @@ func main() {
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
 		fx.Invoke(SetupSwagger),
+		fx.Invoke(MigrateDB),
 	)
 
 	app.Run()
@@ -96,6 +136,11 @@ func SetupSwagger(router *gin.Engine) {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
+func MigrateDB() {
+	db := infra.GetPostgresql()
+	infra.MigratePostgresql(db, db_models.POIDetail{}, db_models.POI{})
+}
+
 func RegisterRoutes(r *gin.Engine,
 	poisController *controllers.POIsController,
 	tagsController *controllers.TagController,
@@ -105,6 +150,7 @@ func RegisterRoutes(r *gin.Engine,
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
 	poisgroup.GET("/pois-details/:id", poisController.GetPoiById)
+	poisgroup.POST("/create-poi", poisController.CreatePoi)
 
 	tagsGroup := r.Group("/tags")
 	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)

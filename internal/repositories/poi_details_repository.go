@@ -41,7 +41,6 @@ func (p poiDetailsRepository) UpdatePOIDetails(poiID string, details *db_models.
 		}
 
 		existingDetails.Images = details.Images
-		existingDetails.Reviews = details.Reviews
 
 		if err := tx.Save(&existingDetails).Error; err != nil {
 			return err // Return any error encountered during save

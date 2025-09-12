@@ -9,4 +9,4 @@
 
 .idea/workspace.xml
 .idea
-cmd/app/.env
+.env
