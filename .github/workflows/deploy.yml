@@ -48,7 +48,6 @@ jobs:
           RDS_CONNECTION: ${{ secrets.RDS_CONNECTION }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-
         run: |
           ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<EOF
           set -e
