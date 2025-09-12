@@ -53,20 +53,27 @@ jobs:
           echo "🐳 Install & start Docker (AL2023)"
           sudo dnf -y install docker || true
           sudo systemctl enable --now docker
-      
-          
           sudo usermod -aG docker ec2-user || true
-      
-          echo "🧩 Install Docker Compose v2 plugin"
-          COMPOSE_VERSION=v2.29.7
-          sudo mkdir -p /usr/libexec/docker/cli-plugins
-          sudo curl -sSL \
-          "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" \
-          -o /usr/libexec/docker/cli-plugins/docker-compose
-          sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
           
-          # Verify
-          sudo docker compose version
+          echo "🧩 Install Docker Compose v2 plugin (multi-path for safety)"
+          COMPOSE_VERSION="v2.29.7"
+          ARCH="$(uname -m)"   # runs on the EC2 host thanks to the quoted heredoc
+          URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}"
+      
+          # Install to the standard plugin dirs Docker scans
+          sudo mkdir -p /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins ~/.docker/cli-plugins
+          sudo curl -sSL "$URL" -o /usr/libexec/docker/cli-plugins/docker-compose
+          sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+      
+          # Also copy to /usr/local/lib path (some builds check this too)
+          sudo cp -f /usr/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
+      
+          # Optional: legacy shim so 'docker-compose' works
+          sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+      
+          echo "✅ Verify Compose plugin discovery"
+          sudo env DOCKER_CLI_PLUGIN_PATH=/usr/libexec/docker/cli-plugins:/usr/local/lib/docker/cli-plugins docker compose version || true
+          /usr/local/bin/docker-compose version || true
 
           echo "🔐 Logging in to Docker Hub"
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
