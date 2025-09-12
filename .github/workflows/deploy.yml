@@ -58,12 +58,14 @@ jobs:
           sudo usermod -aG docker ec2-user || true
       
           echo "🧩 Install Docker Compose v2 plugin"
-          COMPOSE_VERSION="${COMPOSE_VERSION:-v2.29.7}"
-          sudo mkdir -p /usr/local/lib/docker/cli-plugins
+          COMPOSE_VERSION=v2.29.7
+          sudo mkdir -p /usr/libexec/docker/cli-plugins
           sudo curl -sSL \
           "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" \
-          -o /usr/local/lib/docker/cli-plugins/docker-compose
-          sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          -o /usr/libexec/docker/cli-plugins/docker-compose
+          sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+          
+          # Verify
           sudo docker compose version
 
           echo "🔐 Logging in to Docker Hub"
