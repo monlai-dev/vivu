@@ -45,16 +45,10 @@ jobs:
           RDS_CONNECTION: ${{ secrets.RDS_CONNECTION }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          PORT:             8080
         run: |
           ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<EOF
           set -e
-
-          echo "🧹 Cleaning existing project directory if present"
-          rm -rf "$EC2_PROJECT_DIR"
-          
-          echo "📥 Cloning repo"
-          git clone "$REPO_URL" "$EC2_PROJECT_DIR"
-          cd "$EC2_PROJECT_DIR"
           
           echo "🐳 Ensuring Docker is running"
           sudo systemctl start docker || true
@@ -83,7 +77,17 @@ jobs:
           sudo yum install -y jq || sudo apt-get install -y jq
           fi
           
-          
+          # docker-compose.yml (no repo required)
+          cat > docker-compose.yml <<YML
+          services:
+            app:
+              image: ${IMAGE_NAME}
+              container_name: vivu
+              env_file: .env
+              ports:
+                - "${PORT}:${PORT}"
+              restart: unless-stopped
+          YML
           
           echo "🚀 Starting services using Docker Compose"
           docker-compose pull

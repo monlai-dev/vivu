@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  driver:
+    image: monlaine123/vivu:latest
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
