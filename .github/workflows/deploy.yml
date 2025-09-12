@@ -51,10 +51,30 @@ jobs:
           set -e
           
           echo "🐳 Ensuring Docker is running"
-          sudo systemctl start docker || true
-          sudo systemctl enable docker
-          sudo usermod -aG docker ec2-user || true
+          set -euo pipefail
 
+        # Log architecture (x86_64 or aarch64)
+          uname -m
+          
+          # Install Docker (try docker pkg, fall back to moby)
+          if ! command -v docker >/dev/null 2>&1; then
+          sudo dnf -y install docker docker-compose-plugin \
+          || sudo dnf -y install moby-engine moby-cli docker-compose-plugin \
+          || (curl -fsSL https://get.docker.com | sh)
+          fi
+          
+          # Enable & start
+          sudo systemctl daemon-reload || true
+          sudo systemctl enable --now docker
+          
+          # Use sudo for docker in this session
+          DOCKER="sudo docker"
+          COMPOSE="sudo docker compose"
+          
+          # Sanity checks
+          $DOCKER version
+          $COMPOSE version || echo "compose plugin missing"
+      
           echo "📦 Installing docker-compose if missing"
           if ! command -v docker-compose &> /dev/null; then
             sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
