@@ -41,10 +41,7 @@ jobs:
         shell: bash
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_PROJECT_DIR: ${{ secrets.EC2_PROJECT_DIR }}
           REPO_URL: ${{ secrets.REPO_URL }}
-          ENV: ${{ secrets.ENV }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
           RDS_CONNECTION: ${{ secrets.RDS_CONNECTION }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -91,5 +88,3 @@ jobs:
           echo "🚀 Starting services using Docker Compose"
           docker-compose pull
           docker-compose up -d --remove-orphans --build
-
-          EOF
