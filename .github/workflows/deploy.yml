@@ -93,6 +93,7 @@ jobs:
           POSTGRES_URL=${POSTGRES_URL}
           GEMINI_API_KEY=${GEMINI_API_KEY}
           MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
+          PORT=${PORT}
           EOT
           
           cat > docker-compose.yml <<YML
