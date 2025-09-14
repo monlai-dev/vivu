@@ -28,7 +28,7 @@ import (
 
 func init() {
 	if err := loadDotEnv(); err != nil {
-		log.Printf("No .env found (will use OS env): %v", err)
+		log.Printf("No .env found (will use OS env...): %v", err)
 	}
 }
 
