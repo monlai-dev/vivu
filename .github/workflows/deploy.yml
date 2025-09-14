@@ -47,7 +47,7 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           PORT:             8080
         run: |
-          ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<'EOF'
+          ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<EOF
           set -e
           
           echo "🐳 Install & start Docker (AL2023)"
