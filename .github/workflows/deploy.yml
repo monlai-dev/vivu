@@ -75,8 +75,11 @@ jobs:
           echo '🔐 Setting up Docker permissions and login'
           # Ensure docker group membership is active and fix permissions
           sudo chown ec2-user:docker /var/run/docker.sock 2>/dev/null || true
-          mkdir -p ~/.docker
-          chmod 700 ~/.docker
+          
+          # Fix .docker directory ownership and permissions
+          sudo mkdir -p ~/.docker
+          sudo chown -R ec2-user:ec2-user ~/.docker
+          sudo chmod -R 700 ~/.docker
           
           # Use newgrp to activate docker group membership for this session
           newgrp docker <<DOCKERCMD
