@@ -45,48 +45,48 @@ jobs:
           RDS_CONNECTION: ${{ secrets.RDS_CONNECTION }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          PORT:             8080
+          PORT: 8080
         run: |
-          ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<EOF
+          ssh -o StrictHostKeyChecking=no "$EC2_HOST" "
           set -e
           
-          echo "🐳 Install & start Docker (AL2023)"
+          echo '🐳 Install & start Docker (AL2023)'
           sudo dnf -y install docker || true
           sudo systemctl enable --now docker
           sudo usermod -aG docker ec2-user || true
           
-          echo "🧩 Install Docker Compose v2 plugin (multi-path for safety)"
-          COMPOSE_VERSION="v2.29.7"
-          ARCH="$(uname -m)"  
-          URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}"
-      
+          echo '🧩 Install Docker Compose v2 plugin (multi-path for safety)'
+          COMPOSE_VERSION='v2.29.7'
+          ARCH=\$(uname -m)
+          URL=\"https://github.com/docker/compose/releases/download/\${COMPOSE_VERSION}/docker-compose-linux-\${ARCH}\"
+          
           # Install to the standard plugin dirs Docker scans
           sudo mkdir -p /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins ~/.docker/cli-plugins
-          sudo curl -sSL "$URL" -o /usr/libexec/docker/cli-plugins/docker-compose
+          sudo curl -sSL \"\$URL\" -o /usr/libexec/docker/cli-plugins/docker-compose
           sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
-      
+          
           # Also copy to /usr/local/lib path (some builds check this too)
           sudo cp -f /usr/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
-      
+          
           # Optional: legacy shim so 'docker-compose' works
           sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
-      
-          echo "✅ Verify Compose plugin discovery"
+          
+          echo '✅ Verify Compose plugin discovery'
           sudo env DOCKER_CLI_PLUGIN_PATH=/usr/libexec/docker/cli-plugins:/usr/local/lib/docker/cli-plugins docker compose version || true
           /usr/local/bin/docker-compose version || true
 
-          echo "🔐 Logging in to Docker Hub"
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          echo '🔐 Logging in to Docker Hub'
+          echo '$DOCKER_PASSWORD' | docker login -u '$DOCKER_USERNAME' --password-stdin
 
-          echo "🧾 Writing .env file"
+          echo '🧾 Writing .env file'
           cat > .env <<EOT
-          ENV=$ENV
-          REDIS_URL=$REDIS_URL
+          ENV=\$ENV
+          REDIS_URL=\$REDIS_URL
           RDS_CONNECTION=$RDS_CONNECTION
           
           EOT
           
-          echo "🛠 Installing jq if it's missing"
+          echo '🛠 Installing jq if it'\''s missing'
           if ! command -v jq &> /dev/null; then
           sudo yum install -y jq || sudo apt-get install -y jq
           fi
@@ -95,15 +95,15 @@ jobs:
           cat > docker-compose.yml <<YML
           services:
             app:
-              image: ${IMAGE_NAME}
+              image: $IMAGE_NAME
               container_name: vivu
               env_file: .env
               ports:
-                - "${PORT}:${PORT}"
+                - '$PORT:$PORT'
               restart: unless-stopped
           YML
           
-          echo "🚀 Starting services using Docker Compose"
+          echo '🚀 Starting services using Docker Compose'
           docker-compose pull
           docker-compose up -d --remove-orphans --build
-          EOF
+          "
