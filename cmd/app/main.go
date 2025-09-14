@@ -27,13 +27,6 @@ import (
 )
 
 func init() {
-	err := loadDotEnv()
-	if err != nil {
-		log.Fatalf("Error loading .env file, %v", err)
-	}
-}
-
-func init() {
 	if err := loadDotEnv(); err != nil {
 		log.Printf("No .env found (will use OS env): %v", err)
 	}

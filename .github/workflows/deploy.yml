@@ -42,10 +42,12 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           REPO_URL: ${{ secrets.REPO_URL }}
-          RDS_CONNECTION: ${{ secrets.RDS_CONNECTION }}
+          POSTGRES_URL: ${{ secrets.RDS_CONNECTION }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          PORT: 8080
+          PORT: 3636
         run: |
           ssh -o StrictHostKeyChecking=no "$EC2_HOST" "
           set -e
@@ -88,7 +90,9 @@ jobs:
           echo '🧾 Creating configuration files'
           cat > .env <<EOT
           ENV=\$ENV
-          RDS_CONNECTION=$RDS_CONNECTION
+          POSTGRES_URL=${POSTGRES_URL}
+          GEMINI_API_KEY=${GEMINI_API_KEY}
+          MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
           EOT
           
           cat > docker-compose.yml <<YML
