@@ -47,7 +47,7 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           PORT:             8080
         run: |
-          ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<EOF
+          ssh -o StrictHostKeyChecking=no "$EC2_HOST" <<'EOF'
           set -e
           
           echo "🐳 Install & start Docker (AL2023)"
@@ -57,7 +57,7 @@ jobs:
           
           echo "🧩 Install Docker Compose v2 plugin (multi-path for safety)"
           COMPOSE_VERSION="v2.29.7"
-          ARCH="$(uname -m)"   # runs on the EC2 host thanks to the quoted heredoc
+          ARCH="$(uname -m)"  
           URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}"
       
           # Install to the standard plugin dirs Docker scans

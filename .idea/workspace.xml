@@ -5,18 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/docs.go" beforeDir="false" afterPath="$PROJECT_DIR$/docs/docs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/swagger.json" beforeDir="false" afterPath="$PROJECT_DIR$/docs/swagger.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/swagger.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/docs/swagger.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/api/controllers/pois_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/pois_controller.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/infra/postgres.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/infra/postgres.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/db_models/poi_detail.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/poi_detail.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/request_models/empty.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/pois_request.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repositories/poi_details_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/poi_details_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/poi_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/poi_service.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,6 +16,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Go File" />
+        <option value="Dockerfile" />
       </list>
     </option>
   </component>
@@ -51,7 +41,7 @@
     &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/1-adjust-ai-response&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/admin&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
