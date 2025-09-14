@@ -50,48 +50,38 @@ jobs:
           ssh -o StrictHostKeyChecking=no "$EC2_HOST" "
           set -e
           
-          echo '🐳 Install & start Docker (AL2023)'
-          sudo dnf -y install docker || true
-          sudo systemctl enable --now docker
-          sudo usermod -aG docker ec2-user || true
+          echo '🐳 Ensuring Docker is running'
+          if ! systemctl is-active --quiet docker; then
+            sudo dnf -y install docker
+            sudo systemctl enable --now docker
+            sudo usermod -aG docker ec2-user
+          fi
           
-          echo '🧩 Install Docker Compose v2 plugin (multi-path for safety)'
-          COMPOSE_VERSION='v2.29.7'
-          ARCH=\$(uname -m)
-          URL=\"https://github.com/docker/compose/releases/download/\${COMPOSE_VERSION}/docker-compose-linux-\${ARCH}\"
+          echo '🧩 Checking Docker Compose installation'
+          if ! docker compose version &>/dev/null && ! docker-compose version &>/dev/null; then
+            echo 'Installing Docker Compose v2 plugin'
+            COMPOSE_VERSION='v2.29.7'
+            ARCH=\$(uname -m)
+            URL=\"https://github.com/docker/compose/releases/download/\${COMPOSE_VERSION}/docker-compose-linux-\${ARCH}\"
           
-          # Install to the standard plugin dirs Docker scans
-          sudo mkdir -p /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins ~/.docker/cli-plugins
-          sudo curl -sSL \"\$URL\" -o /usr/libexec/docker/cli-plugins/docker-compose
-          sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
-          
-          # Also copy to /usr/local/lib path (some builds check this too)
-          sudo cp -f /usr/libexec/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
-          
-          # Optional: legacy shim so 'docker-compose' works
-          sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
-          
-          echo '✅ Verify Compose plugin discovery'
-          sudo env DOCKER_CLI_PLUGIN_PATH=/usr/libexec/docker/cli-plugins:/usr/local/lib/docker/cli-plugins docker compose version || true
-          /usr/local/bin/docker-compose version || true
+            sudo mkdir -p /usr/libexec/docker/cli-plugins
+            sudo curl -sSL \"\$URL\" -o /usr/libexec/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+            sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+          else
+            echo 'Docker Compose already installed'
+          fi
 
           echo '🔐 Logging in to Docker Hub'
           echo '$DOCKER_PASSWORD' | docker login -u '$DOCKER_USERNAME' --password-stdin
 
-          echo '🧾 Writing .env file'
+          echo '🧾 Creating configuration files'
           cat > .env <<EOT
           ENV=\$ENV
           REDIS_URL=\$REDIS_URL
           RDS_CONNECTION=$RDS_CONNECTION
-          
           EOT
           
-          echo '🛠 Installing jq if it'\''s missing'
-          if ! command -v jq &> /dev/null; then
-          sudo yum install -y jq || sudo apt-get install -y jq
-          fi
-          
-          # docker-compose.yml (no repo required)
           cat > docker-compose.yml <<YML
           services:
             app:
@@ -101,9 +91,14 @@ jobs:
               ports:
                 - '$PORT:$PORT'
               restart: unless-stopped
+              pull_policy: always
           YML
           
-          echo '🚀 Starting services using Docker Compose'
+          echo '🚀 Deploying application'
+          docker-compose down --remove-orphans 2>/dev/null || true
           docker-compose pull
-          docker-compose up -d --remove-orphans --build
+          docker-compose up -d
+          
+          echo '✅ Deployment completed'
+          docker-compose ps
           "
