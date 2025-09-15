@@ -14,7 +14,7 @@ func provideAccountRepo(db *gorm.DB) repositories.AccountRepository {
 	return repositories.NewAccountRepository(db)
 }
 
-func provideAccountService(accountRepo repositories.AccountRepository) services.AccountService {
+func provideAccountService(accountRepo repositories.AccountRepository) services.AccountServiceInterface {
 
 	return services.NewAccountService(accountRepo)
 }

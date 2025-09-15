@@ -20,6 +20,17 @@ definitions:
       province:
         type: string
     type: object
+  request_models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
   request_models.PlanOnlyRequest:
     properties:
       session_id:
@@ -75,6 +86,22 @@ definitions:
     properties:
       user_id:
         type: string
+    type: object
+  request_models.SignUpRequest:
+    properties:
+      display_name:
+        maxLength: 50
+        minLength: 3
+        type: string
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - display_name
+    - email
+    - password
     type: object
   response_models.DistanceMatrix:
     additionalProperties:
@@ -214,6 +241,58 @@ definitions:
 info:
   contact: {}
 paths:
+  /accounts/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user and return a token
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Login to an account
+      tags:
+      - Accounts
+  /accounts/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: Account registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Register a new account
+      tags:
+      - Accounts
   /pois/create-poi:
     post:
       consumes:

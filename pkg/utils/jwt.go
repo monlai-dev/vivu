@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"os"
 	"time"
 )
@@ -9,15 +10,15 @@ import (
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 type Claims struct {
-	Email string `json:"email"`
+	userId string `json:"user_id"`
 	jwt.RegisteredClaims
 	Role string `json:"role"`
 }
 
-func CreateToken(email string, role string) (string, error) {
+func CreateToken(userId uuid.UUID, role string) (string, error) {
 	claims := &Claims{
-		Email: email,
-		Role:  role,
+		userId: userId.String(),
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
