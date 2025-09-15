@@ -10,10 +10,10 @@ import (
 )
 
 type AccountController struct {
-	accountService services.AccountService
+	accountService services.AccountServiceInterface
 }
 
-func NewAccountController(accountService services.AccountService) *AccountController {
+func NewAccountController(accountService services.AccountServiceInterface) *AccountController {
 	return &AccountController{
 		accountService: accountService,
 	}
