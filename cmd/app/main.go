@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"vivu/cmd/fx/account_fx"
 	"vivu/cmd/fx/controllers_fx"
 	"vivu/cmd/fx/db_fx"
 	"vivu/cmd/fx/distance_matrix_fx"
@@ -73,6 +74,7 @@ func main() {
 		poi_embedded_fx.Module,
 		province_fx.Module,
 		distance_matrix_fx.Module,
+		account_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -106,7 +108,8 @@ func ProvideRouter(
 	poisController *controllers.POIsController,
 	tagsController *controllers.TagController,
 	promptController *controllers.PromptController,
-	provinceController *controllers.ProvincesController) *gin.Engine {
+	provinceController *controllers.ProvincesController,
+	accountController *controllers.AccountController) *gin.Engine {
 
 	r := gin.Default()
 	r.Use(gin.Logger())
@@ -114,7 +117,7 @@ func ProvideRouter(
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.TraceIDMiddleware())
 
-	RegisterRoutes(r, poisController, tagsController, promptController, provinceController)
+	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController)
 
 	return r
 }
@@ -131,14 +134,19 @@ func SetupSwagger(router *gin.Engine) {
 
 func MigrateDB() {
 	db := infra.GetPostgresql()
-	infra.MigratePostgresql(db, db_models.POIDetail{}, db_models.POI{})
+	infra.MigratePostgresql(db, db_models.POIDetail{}, db_models.POI{}, db_models.Account{})
 }
 
 func RegisterRoutes(r *gin.Engine,
 	poisController *controllers.POIsController,
 	tagsController *controllers.TagController,
 	promptController *controllers.PromptController,
-	provinceController *controllers.ProvincesController) {
+	provinceController *controllers.ProvincesController,
+	accountController *controllers.AccountController) {
+
+	accountGroup := r.Group("/accounts")
+	accountGroup.POST("/register", accountController.Register)
+	accountGroup.POST("/login", accountController.Login)
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
@@ -148,12 +156,12 @@ func RegisterRoutes(r *gin.Engine,
 	tagsGroup := r.Group("/tags")
 	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)
 
-	promptGroup := r.Group("/prompt")
+	promptGroup := r.Group("/prompt", middleware.JWTAuthMiddleware())
 	promptGroup.POST("/generate-plan", promptController.CreatePromptHandler)
 	promptGroup.POST("/quiz/start", promptController.StartQuizHandler)
 	promptGroup.POST("/quiz/answer", promptController.AnswerQuizHandler)
 	promptGroup.POST("/quiz/plan-only", promptController.PlanOnlyHandler)
 
 	provinceGroup := r.Group("/provinces")
-	provinceGroup.GET("/list-all", provinceController.GetAllProvinces)
+	provinceGroup.GET("/list-all", provinceController.GetAllProvinces, middleware.RoleMiddleware("admin"))
 }
