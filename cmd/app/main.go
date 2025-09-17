@@ -63,6 +63,10 @@ func loadDotEnv() error {
 	return fmt.Errorf(".env not found from %q upward", wd)
 }
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
 func main() {
 	app := fx.New(
 		fx.Invoke(infra.InitPostgresql),
