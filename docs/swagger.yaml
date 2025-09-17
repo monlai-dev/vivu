@@ -482,6 +482,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Get all provinces
       tags:
       - Provinces
@@ -515,4 +517,10 @@ paths:
       summary: List all tags
       tags:
       - Tags
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
