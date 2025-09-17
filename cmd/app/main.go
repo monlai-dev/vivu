@@ -162,6 +162,6 @@ func RegisterRoutes(r *gin.Engine,
 	promptGroup.POST("/quiz/answer", promptController.AnswerQuizHandler)
 	promptGroup.POST("/quiz/plan-only", promptController.PlanOnlyHandler)
 
-	provinceGroup := r.Group("/provinces")
+	provinceGroup := r.Group("/provinces", middleware.JWTAuthMiddleware())
 	provinceGroup.GET("/list-all", provinceController.GetAllProvinces, middleware.RoleMiddleware("admin"))
 }
