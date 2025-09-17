@@ -28,6 +28,7 @@ func NewProvincesController(provinceService services.ProvinceServiceInterface) *
 // @Param pageSize query int false "Page size (default: 5, max: 100)"
 // @Success 200 {object} response_models.ProvinceResponse
 // @Failure 400 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /provinces/list-all [get]
 func (p *ProvincesController) GetAllProvinces(c *gin.Context) {
 
