@@ -129,7 +129,25 @@ func SetupSwagger(router *gin.Engine) {
 	docs.SwaggerInfo.BasePath = "/"
 	docs.SwaggerInfo.Schemes = []string{"http"} // local
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	sg := router.Group("/swagger")
+	sg.Use(func(c *gin.Context) {
+		// add whatever headers you need:
+		c.Header("Cache-Control", "no-store")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "no-referrer")
+		c.Header("Content-Security-Policy",
+			"default-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data:;")
+		// example custom header
+		c.Header("X-Env", "local")
+		c.Next()
+	})
+
+	sg.GET("/*any", ginSwagger.WrapHandler(
+		swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),   // where Swagger UI loads the spec
+		ginSwagger.PersistAuthorization(true), // keep bearer token after refresh
+	))
 }
 
 func MigrateDB() {
