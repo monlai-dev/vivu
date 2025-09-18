@@ -87,6 +87,14 @@ var errorHandlers = map[error]func(*gin.Context, string){
 			TraceID: traceID,
 		})
 	},
+	ErrEmailAlreadyExists: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusConflict,
+			Message: "Email already exists",
+			TraceID: traceID,
+		})
+	},
 }
 
 func RespondSuccess(c *gin.Context, data interface{}, message string) {
