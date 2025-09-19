@@ -226,6 +226,11 @@ const docTemplate = `{
         },
         "/prompt/quiz/answer": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Process answers for a quiz session",
                 "consumes": [
                     "application/json"
@@ -266,6 +271,11 @@ const docTemplate = `{
         },
         "/prompt/quiz/plan-only": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Generate a travel plan based on session ID",
                 "consumes": [
                     "application/json"
@@ -306,6 +316,11 @@ const docTemplate = `{
         },
         "/prompt/quiz/start": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Start a quiz session for the user",
                 "consumes": [
                     "application/json"

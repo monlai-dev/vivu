@@ -46,6 +46,7 @@ func (p *PromptController) CreatePromptHandler(c *gin.Context) {
 // @Param request body request_models.QuizStartRequest true "User ID for quiz session"
 // @Success 200 {object} response_models.QuizResponse
 // @Failure 400 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /prompt/quiz/start [post]
 func (p *PromptController) StartQuizHandler(c *gin.Context) {
 	var req request_models.QuizStartRequest // { "user_id": "u123" }
@@ -70,6 +71,7 @@ func (p *PromptController) StartQuizHandler(c *gin.Context) {
 // @Param request body request_models.QuizRequest true "Quiz answers and session ID"
 // @Success 200 {object} response_models.QuizResponse
 // @Failure 400 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /prompt/quiz/answer [post]
 func (p *PromptController) AnswerQuizHandler(c *gin.Context) {
 	var req request_models.QuizRequest // { "session_id": "...", "answers": {...} }
@@ -94,6 +96,7 @@ func (p *PromptController) AnswerQuizHandler(c *gin.Context) {
 // @Param request body request_models.PlanOnlyRequest true "Session ID for plan generation"
 // @Success 200 {object} response_models.PlanOnly
 // @Failure 400 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /prompt/quiz/plan-only [post]
 func (p *PromptController) PlanOnlyHandler(c *gin.Context) {
 	var req request_models.PlanOnlyRequest // { "session_id": "..." }

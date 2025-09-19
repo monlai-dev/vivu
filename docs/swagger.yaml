@@ -402,6 +402,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Submit quiz answers
       tags:
       - Prompt
@@ -428,6 +430,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Generate a travel plan without quiz
       tags:
       - Prompt
@@ -454,6 +458,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Start a travel quiz
       tags:
       - Prompt
