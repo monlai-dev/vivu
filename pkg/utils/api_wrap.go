@@ -95,6 +95,14 @@ var errorHandlers = map[error]func(*gin.Context, string){
 			TraceID: traceID,
 		})
 	},
+	ErrJourneyNotFound: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusNotFound,
+			Message: "Journey not found",
+			TraceID: traceID,
+		})
+	},
 }
 
 func RespondSuccess(c *gin.Context, data interface{}, message string) {

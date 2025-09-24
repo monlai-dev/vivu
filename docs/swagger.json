@@ -84,6 +84,107 @@
                 }
             }
         },
+        "/journeys/get-details-info-of-journey-by-id/{journeyId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch detailed information about a specific journey by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Journey"
+                ],
+                "summary": "Get journey details by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Journey ID",
+                        "name": "journeyId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.JourneyDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/journeys/get-journey-by-userid": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch a paginated list of journeys for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Journey"
+                ],
+                "summary": "Get journeys by user ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/response_models.JourneyResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/pois/create-poi": {
             "post": {
                 "description": "Create a new Point of Interest (POI)",
@@ -605,6 +706,114 @@
                 }
             }
         },
+        "response_models.JourneyActivityDetail": {
+            "type": "object",
+            "properties": {
+                "activity_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "selected_poi": {
+                    "$ref": "#/definitions/response_models.POISummary"
+                },
+                "time": {
+                    "description": "RFC3339 date/time",
+                    "type": "string"
+                }
+            }
+        },
+        "response_models.JourneyDayResponse": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response_models.JourneyActivityDetail"
+                    }
+                },
+                "date": {
+                    "description": "RFC3339 date",
+                    "type": "string"
+                },
+                "day_number": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "response_models.JourneyDetailResponse": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "description": "Plan details",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response_models.JourneyDayResponse"
+                    }
+                },
+                "duration_days": {
+                    "description": "computed (inclusive or exclusive—your call; see mapper)",
+                    "type": "integer"
+                },
+                "end_date": {
+                    "description": "RFC3339 date/time",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_completed": {
+                    "type": "boolean"
+                },
+                "is_shared": {
+                    "type": "boolean"
+                },
+                "start_date": {
+                    "description": "RFC3339 date/time",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_activities": {
+                    "type": "integer"
+                },
+                "total_days": {
+                    "description": "Quick stats",
+                    "type": "integer"
+                }
+            }
+        },
+        "response_models.JourneyResponse": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "response_models.MatrixEdge": {
             "type": "object",
             "properties": {
@@ -648,6 +857,29 @@
                 },
                 "poi_details": {
                     "$ref": "#/definitions/response_models.PoiDetails"
+                }
+            }
+        },
+        "response_models.POISummary": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },

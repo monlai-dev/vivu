@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"log"
+	"math/rand"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -30,7 +32,17 @@ type PromptServiceInterface interface {
 	GeneratePersonalizedPlan(ctx context.Context, sessionID string) (*response_models.QuizResultResponse, error)
 
 	GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error)
+	GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (*response_models.PlanOnly, error)
 }
+
+var vnLoc = func() *time.Location {
+	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if err != nil {
+		// Fallback but you really want the named tz for DST/offset correctness (VN is fixed +07)
+		return time.FixedZone("ICT", 7*60*60)
+	}
+	return loc
+}()
 
 type PromptService struct {
 	poisService  POIServiceInterface
@@ -41,6 +53,7 @@ type PromptService struct {
 	quizSessions map[string]*QuizSession
 	sessionMutex sync.RWMutex
 	matrixSvc    DistanceMatrixService
+	journeyRepo  repositories.JourneyRepository
 }
 
 func NewPromptService(
@@ -50,6 +63,7 @@ func NewPromptService(
 	embededRepo repositories.IPoiEmbededRepository,
 	poisRepo repositories.POIRepository,
 	matrixSvc DistanceMatrixService,
+	journeyRepo repositories.JourneyRepository,
 
 ) PromptServiceInterface {
 	return &PromptService{
@@ -59,6 +73,7 @@ func NewPromptService(
 		embededRepo: embededRepo,
 		poisRepo:    poisRepo,
 		matrixSvc:   matrixSvc,
+		journeyRepo: journeyRepo,
 	}
 }
 
@@ -69,6 +84,64 @@ type QuizSession struct {
 	CurrentStep int               `json:"current_step"`
 	CreatedAt   time.Time         `json:"created_at"`
 	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+func (p *PromptService) GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (*response_models.PlanOnly, error) {
+	plan, err := p.GeneratePlanOnly(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	go p.savePlanAsyncWithRetry(sessionID, userId, plan)
+
+	return plan, nil
+}
+
+func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUID, plan *response_models.PlanOnly) {
+	const (
+		maxAttempts     = 5
+		baseDelay       = 300 * time.Millisecond
+		totalTimeBudget = 2 * time.Minute
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), totalTimeBudget)
+	defer cancel()
+
+	jitter := func(d time.Duration) time.Duration {
+		n := rand.New(rand.NewSource(time.Now().UnixNano()))
+		variance := time.Duration(n.Int63n(int64(d))) - d/2
+		return d + variance
+	}
+
+	// Choose a VN-local start date (e.g., “today” in VN)
+	startVN := time.Now().In(vnLoc)
+	// If you want to normalize to VN midnight:
+	startVN = time.Date(startVN.Year(), startVN.Month(), startVN.Day(), 0, 0, 0, 0, vnLoc)
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		_, err := p.journeyRepo.ReplaceMaterializedPlan(ctx, &uuid.Nil, plan, &repositories.CreateJourneyInput{
+			Title:     fmt.Sprintf("Plan for session %s", sessionID),
+			AccountID: userId,
+			StartDate: startVN, // VN tz
+			// EndDate: pointer to a VN time if you have it, or nil
+		})
+		if err == nil {
+			log.Printf("[plan] saved (session=%s, attempt=%d)", sessionID, attempt)
+			return
+		}
+
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.Canceled) {
+			log.Printf("[plan] aborting retries due to context end (session=%s, attempt=%d, err=%v)", sessionID, attempt, err)
+			return
+		}
+
+		delay := time.Duration(1<<uint(attempt-1)) * baseDelay
+		sleep := jitter(delay)
+		log.Printf("[plan] save failed; retrying in %v (session=%s, attempt=%d/%d, err=%v)", sleep, sessionID, attempt, maxAttempts, err)
+		time.Sleep(sleep)
+	}
+
+	log.Printf("[plan] giving up after %d attempts (session=%s)", maxAttempts, sessionID)
 }
 
 func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error) {
@@ -590,16 +663,12 @@ func (p *PromptService) parseDestination(dest string) string {
 }
 
 func (p *PromptService) parseDuration(duration string) int {
-	if strings.Contains(duration, "1 day") {
-		return 1
+	for i := 1; i <= 7; i++ {
+		if strings.Contains(duration, fmt.Sprintf("%d day", i)) || strings.Contains(duration, fmt.Sprintf("%d days", i)) {
+			return i
+		}
 	}
-	if strings.Contains(duration, "2 days") {
-		return 2
-	}
-	if strings.Contains(duration, "3 days") {
-		return 3
-	}
-	// Add more duration parsing...
+
 	return 1
 }
 

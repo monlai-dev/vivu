@@ -2,7 +2,7 @@ package request_models
 
 type QuizRequest struct {
 	UserID    string            `json:"user_id"`
-	SessionID string            `json:"session_id,omitempty"`
+	SessionID string            `json:"session_id, omitempty"`
 	Answers   map[string]string `json:"answers,omitempty"`
 }
 

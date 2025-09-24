@@ -10,4 +10,5 @@ var Module = fx.Options(
 	fx.Provide(controllers.NewTagController),
 	fx.Provide(controllers.NewPromptController),
 	fx.Provide(controllers.NewProvincesController),
-	fx.Provide(controllers.NewAccountController))
+	fx.Provide(controllers.NewAccountController),
+	fx.Provide(controllers.NewJourneyController))

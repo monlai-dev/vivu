@@ -1,0 +1,63 @@
+package services
+
+import (
+	"context"
+	"vivu/internal/models/db_models"
+	"vivu/internal/models/response_models"
+	"vivu/internal/repositories"
+	"vivu/pkg/utils"
+)
+
+type JourneyServiceInterface interface {
+	GetListOfJourneyByUserId(ctx context.Context, page int, pagesize int, userId string) ([]response_models.JourneyResponse, error)
+	GetDetailsInfoOfJourneyById(ctx context.Context, journeyId string) (*response_models.JourneyDetailResponse, error)
+}
+
+type JourneyService struct {
+	journeyRepo repositories.JourneyRepository
+}
+
+func NewJourneyService(journeyRepo repositories.JourneyRepository) JourneyServiceInterface {
+	return &JourneyService{
+		journeyRepo: journeyRepo,
+	}
+}
+
+func (j *JourneyService) GetListOfJourneyByUserId(
+	ctx context.Context, page, pagesize int, userId string,
+) ([]response_models.JourneyResponse, error) {
+
+	journeys, err := j.journeyRepo.GetListOfJourneyByUserId(ctx, page, pagesize, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]response_models.JourneyResponse, 0, len(journeys))
+	for _, journey := range journeys {
+		startVN := utils.FromUnixSecondsVN(journey.StartDate) // expects seconds
+		endVN := utils.FromUnixSecondsVN(journey.EndDate)
+
+		out = append(out, response_models.JourneyResponse{
+			ID:    journey.ID.String(),
+			Title: journey.Title,
+			// Prefer stable ISO strings for APIs
+			StartDate: utils.FormatRFC3339VN(startVN), // "" if zero
+			EndDate:   utils.FormatRFC3339VN(endVN),   // "" if zero
+		})
+	}
+	return out, nil
+}
+
+func (j *JourneyService) GetDetailsInfoOfJourneyById(ctx context.Context, journeyId string) (*response_models.JourneyDetailResponse, error) {
+	journey, err := j.journeyRepo.GetDetailsOfJourneyById(ctx, journeyId)
+	if err != nil {
+		return nil, err
+	}
+	if journey == nil {
+		return nil, utils.ErrJourneyNotFound
+	}
+
+	out := db_models.BuildJourneyDetailResponse(journey)
+
+	return out, nil
+}

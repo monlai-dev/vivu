@@ -109,6 +109,79 @@ definitions:
         $ref: '#/definitions/response_models.MatrixEdge'
       type: object
     type: object
+  response_models.JourneyActivityDetail:
+    properties:
+      activity_type:
+        type: string
+      id:
+        type: string
+      notes:
+        type: string
+      selected_poi:
+        $ref: '#/definitions/response_models.POISummary'
+      time:
+        description: RFC3339 date/time
+        type: string
+    type: object
+  response_models.JourneyDayResponse:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/response_models.JourneyActivityDetail'
+        type: array
+      date:
+        description: RFC3339 date
+        type: string
+      day_number:
+        type: integer
+      id:
+        type: string
+    type: object
+  response_models.JourneyDetailResponse:
+    properties:
+      days:
+        description: Plan details
+        items:
+          $ref: '#/definitions/response_models.JourneyDayResponse'
+        type: array
+      duration_days:
+        description: computed (inclusive or exclusive—your call; see mapper)
+        type: integer
+      end_date:
+        description: RFC3339 date/time
+        type: string
+      id:
+        type: string
+      is_completed:
+        type: boolean
+      is_shared:
+        type: boolean
+      start_date:
+        description: RFC3339 date/time
+        type: string
+      title:
+        type: string
+      total_activities:
+        type: integer
+      total_days:
+        description: Quick stats
+        type: integer
+    type: object
+  response_models.JourneyResponse:
+    properties:
+      end_date:
+        type: string
+      id:
+        type: string
+      location:
+        type: string
+      start_date:
+        type: string
+      title:
+        type: string
+    required:
+    - title
+    type: object
   response_models.MatrixEdge:
     properties:
       distance_meters:
@@ -138,6 +211,21 @@ definitions:
         type: string
       poi_details:
         $ref: '#/definitions/response_models.PoiDetails'
+    type: object
+  response_models.POISummary:
+    properties:
+      address:
+        type: string
+      id:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      status:
+        type: string
     type: object
   response_models.PlanOnly:
     properties:
@@ -293,6 +381,71 @@ paths:
       summary: Register a new account
       tags:
       - Accounts
+  /journeys/get-details-info-of-journey-by-id/{journeyId}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch detailed information about a specific journey by its ID
+      parameters:
+      - description: Journey ID
+        in: path
+        name: journeyId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.JourneyDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get journey details by ID
+      tags:
+      - Journey
+  /journeys/get-journey-by-userid:
+    get:
+      consumes:
+      - application/json
+      description: Fetch a paginated list of journeys for the authenticated user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/response_models.JourneyResponse'
+              type: array
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get journeys by user ID
+      tags:
+      - Journey
   /pois/create-poi:
     post:
       consumes:

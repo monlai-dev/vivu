@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 	"vivu/internal/models/request_models"
 	"vivu/internal/services"
@@ -104,7 +105,21 @@ func (p *PromptController) PlanOnlyHandler(c *gin.Context) {
 		utils.RespondError(c, http.StatusBadRequest, "session_id is required")
 		return
 	}
-	plan, err := p.promptService.GeneratePlanOnly(c.Request.Context(), req.SessionID)
+
+	userid := c.GetString("user_id")
+
+	if userid == "" {
+		utils.RespondError(c, http.StatusBadRequest, "user_id is required")
+		return
+	}
+
+	userUUID, err := uuid.Parse(userid)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "invalid user_id format")
+		return
+	}
+
+	plan, err := p.promptService.GeneratePlanAndSave(c.Request.Context(), req.SessionID, userUUID)
 	if err != nil {
 		utils.HandleServiceError(c, err)
 		return

@@ -10,14 +10,14 @@ import (
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
 type Claims struct {
-	userId string `json:"user_id"`
+	UserId string `json:"user_id"`
 	jwt.RegisteredClaims
 	Role string `json:"role"`
 }
 
 func CreateToken(userId uuid.UUID, role string) (string, error) {
 	claims := &Claims{
-		userId: userId.String(),
+		UserId: userId.String(),
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),

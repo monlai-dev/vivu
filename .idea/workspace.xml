@@ -5,7 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/internal/api/controllers/journey_controller.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/models/request_models/journey_request.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/models/response_models/journey_response.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/internal/repositories/journey_repository.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/fx/controllers_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/controllers_fx/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/fx/prompt_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/prompt_fx/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/api/controllers/prompt_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/prompt_controller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/journey.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/journey.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/pois.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/pois.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/request_models/quiz_request.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/quiz_request.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/init.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/poi_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/poi_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/prompt_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/prompt_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/middleware/jwt_middleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/middleware/jwt_middleware.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/api_wrap.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/api_wrap.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/custom_err.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/custom_err.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/jwt.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/jwt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pkg/utils/time_utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/time_utils.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,6 +44,9 @@
   <component name="GOROOT" url="file://$USER_HOME$/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.windows-amd64" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$USER_HOME$/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.0.windows-amd64/src/time/time.go" root0="SKIP_INSPECTION" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
@@ -52,6 +76,8 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\admin\GolandProjects\vivu\cmd\fx\journey_fx" />
+      <recent name="C:\Users\admin\GolandProjects\vivu\cmd\fx\init" />
       <recent name="C:\Users\admin\GolandProjects\vivu" />
       <recent name="C:\Users\admin\GolandProjects\vivu\cmd\fx\distance_matrix_fx" />
       <recent name="C:\Users\admin\GolandProjects\vivu\cmd\app" />

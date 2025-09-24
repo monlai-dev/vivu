@@ -16,4 +16,5 @@ var (
 	ErrAccountNotFound        = errors.New("account not found")
 	ErrInvalidCredentials     = errors.New("user or password is incorrect")
 	ErrEmailAlreadyExists     = errors.New("email already exists")
+	ErrJourneyNotFound        = errors.New("journey not found")
 )

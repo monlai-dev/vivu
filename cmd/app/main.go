@@ -15,6 +15,7 @@ import (
 	"vivu/cmd/fx/controllers_fx"
 	"vivu/cmd/fx/db_fx"
 	"vivu/cmd/fx/distance_matrix_fx"
+	"vivu/cmd/fx/journey_fx"
 	"vivu/cmd/fx/poi_embedded_fx"
 	"vivu/cmd/fx/pois_fx"
 	"vivu/cmd/fx/prompt_fx"
@@ -24,6 +25,7 @@ import (
 	"vivu/internal/api/controllers"
 	"vivu/internal/infra"
 	"vivu/internal/models/db_models"
+
 	"vivu/pkg/middleware"
 )
 
@@ -79,6 +81,7 @@ func main() {
 		province_fx.Module,
 		distance_matrix_fx.Module,
 		account_fx.Module,
+		journey_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -86,6 +89,11 @@ func main() {
 		fx.Invoke(MigrateDB),
 	)
 
+	//errExcel := services.ExportPOIsToExcel(infra.GetPostgresql(), "exported_pois.xlsx")
+	//if errExcel != nil {
+	//	log.Println("Failed to export POIs to Excel:", errExcel)
+	//}
+	//services.NewOSClient()
 	app.Run()
 }
 
@@ -97,6 +105,7 @@ func StartServer(lc fx.Lifecycle, engine *gin.Engine) {
 				if err := engine.Run(":" + os.Getenv("PORT")); err != nil {
 					log.Fatalf("Failed to start server: %v", err)
 				}
+
 			}()
 			return nil
 		},
@@ -113,7 +122,8 @@ func ProvideRouter(
 	tagsController *controllers.TagController,
 	promptController *controllers.PromptController,
 	provinceController *controllers.ProvincesController,
-	accountController *controllers.AccountController) *gin.Engine {
+	accountController *controllers.AccountController,
+	journeyController *controllers.JourneyController) *gin.Engine {
 
 	r := gin.Default()
 	r.Use(gin.Logger())
@@ -121,7 +131,7 @@ func ProvideRouter(
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.TraceIDMiddleware())
 
-	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController)
+	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController, journeyController)
 
 	return r
 }
@@ -156,7 +166,7 @@ func SetupSwagger(router *gin.Engine) {
 
 func MigrateDB() {
 	db := infra.GetPostgresql()
-	infra.MigratePostgresql(db, db_models.POIDetail{}, db_models.POI{}, db_models.Account{})
+	infra.MigratePostgresql(db, db_models.POIDetail{}, db_models.POI{}, db_models.Account{}, db_models.Journey{}, db_models.JourneyDay{}, db_models.JourneyActivity{})
 }
 
 func RegisterRoutes(r *gin.Engine,
@@ -164,7 +174,8 @@ func RegisterRoutes(r *gin.Engine,
 	tagsController *controllers.TagController,
 	promptController *controllers.PromptController,
 	provinceController *controllers.ProvincesController,
-	accountController *controllers.AccountController) {
+	accountController *controllers.AccountController,
+	journeyController *controllers.JourneyController) {
 
 	accountGroup := r.Group("/accounts")
 	accountGroup.POST("/register", accountController.Register)
@@ -186,4 +197,8 @@ func RegisterRoutes(r *gin.Engine,
 
 	provinceGroup := r.Group("/provinces", middleware.JWTAuthMiddleware())
 	provinceGroup.GET("/list-all", middleware.RoleMiddleware("admin"), provinceController.GetAllProvinces)
+
+	journeyGroup := r.Group("/journeys", middleware.JWTAuthMiddleware())
+	journeyGroup.POST("/get-journey-by-userid", journeyController.GetJourneyByUserId)
+	journeyGroup.GET("/get-details-info-of-journey-by-id/:journeyId", journeyController.GetDetailsInfoOfJourneyById)
 }

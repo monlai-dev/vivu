@@ -39,7 +39,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Pass user information to the next handler
-		c.Set("user_id", claims.ID)
+		c.Set("user_id", claims.UserId)
 		c.Set("Role", claims.Role)
 		c.Next()
 	}

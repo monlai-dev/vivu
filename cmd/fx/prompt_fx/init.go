@@ -52,6 +52,7 @@ func ProvidePromptService(
 	embededRepo repositories.IPoiEmbededRepository,
 	poisRepo repositories.POIRepository,
 	matrixService services.DistanceMatrixService,
+	journeyRepo repositories.JourneyRepository,
 ) services.PromptServiceInterface {
 	return services.NewPromptService(
 		poisService,
@@ -60,6 +61,7 @@ func ProvidePromptService(
 		embededRepo,
 		poisRepo,
 		matrixService,
+		journeyRepo,
 	)
 }
 
