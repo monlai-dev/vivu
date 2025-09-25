@@ -199,6 +199,6 @@ func RegisterRoutes(r *gin.Engine,
 	provinceGroup.GET("/list-all", middleware.RoleMiddleware("admin"), provinceController.GetAllProvinces)
 
 	journeyGroup := r.Group("/journeys", middleware.JWTAuthMiddleware())
-	journeyGroup.POST("/get-journey-by-userid", journeyController.GetJourneyByUserId)
+	journeyGroup.GET("/get-journey-by-userid", journeyController.GetJourneyByUserId)
 	journeyGroup.GET("/get-details-info-of-journey-by-id/:journeyId", journeyController.GetDetailsInfoOfJourneyById)
 }
