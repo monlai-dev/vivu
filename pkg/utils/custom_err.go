@@ -17,4 +17,7 @@ var (
 	ErrInvalidCredentials     = errors.New("user or password is incorrect")
 	ErrEmailAlreadyExists     = errors.New("email already exists")
 	ErrJourneyNotFound        = errors.New("journey not found")
+	RecordNotFound            = errors.New("record not found")
+	ErrThirdService           = errors.New("third service error")
+	ErrInvalidToken           = errors.New("invalid token")
 )

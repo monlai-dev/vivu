@@ -29,7 +29,7 @@ type GeminiEmbeddingClient struct {
 // NewGeminiEmbeddingClient creates a new Gemini client
 func NewGeminiEmbeddingClient(apiKey, model string) (EmbeddingClientInterface, error) {
 	if model == "" {
-		model = "gemini-1.5-flash" // Free tier model
+		model = "gemini-1.5-flash-latest" // Free tier model
 	}
 
 	ctx := context.Background()

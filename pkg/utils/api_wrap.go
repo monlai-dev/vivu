@@ -103,6 +103,22 @@ var errorHandlers = map[error]func(*gin.Context, string){
 			TraceID: traceID,
 		})
 	},
+	ErrThirdService: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusBadGateway,
+			Message: "Error from third party service",
+			TraceID: traceID,
+		})
+	},
+	ErrInvalidToken: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusOK, APIResponse{
+			Status:  "error",
+			Code:    http.StatusUnauthorized,
+			Message: "Invalid token",
+			TraceID: traceID,
+		})
+	},
 }
 
 func RespondSuccess(c *gin.Context, data interface{}, message string) {

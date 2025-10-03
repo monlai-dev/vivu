@@ -16,6 +16,8 @@ import (
 	"vivu/cmd/fx/db_fx"
 	"vivu/cmd/fx/distance_matrix_fx"
 	"vivu/cmd/fx/journey_fx"
+	"vivu/cmd/fx/mail_fx"
+	"vivu/cmd/fx/memcache_fx"
 	"vivu/cmd/fx/poi_embedded_fx"
 	"vivu/cmd/fx/pois_fx"
 	"vivu/cmd/fx/prompt_fx"
@@ -82,6 +84,8 @@ func main() {
 		distance_matrix_fx.Module,
 		account_fx.Module,
 		journey_fx.Module,
+		mail_fx.Module,
+		memcache_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -166,7 +170,17 @@ func SetupSwagger(router *gin.Engine) {
 
 func MigrateDB() {
 	db := infra.GetPostgresql()
-	infra.MigratePostgresql(db, db_models.POIDetail{}, db_models.POI{}, db_models.Account{}, db_models.Journey{}, db_models.JourneyDay{}, db_models.JourneyActivity{})
+	infra.MigratePostgresql(db,
+		db_models.POIDetail{},
+		db_models.POI{},
+		db_models.Account{},
+		db_models.Journey{},
+		db_models.JourneyDay{},
+		db_models.JourneyActivity{},
+		db_models.Subscription{},
+		db_models.Transaction{},
+		db_models.Plan{})
+
 }
 
 func RegisterRoutes(r *gin.Engine,
@@ -180,6 +194,7 @@ func RegisterRoutes(r *gin.Engine,
 	accountGroup := r.Group("/accounts")
 	accountGroup.POST("/register", accountController.Register)
 	accountGroup.POST("/login", accountController.Login)
+	accountGroup.POST("/forgot-password", accountController.ForgotPassword)
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)

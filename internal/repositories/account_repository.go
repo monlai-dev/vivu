@@ -13,10 +13,23 @@ type AccountRepository interface {
 	FindById(ctx context.Context, id string) (*db_models.Account, error)
 	FindByEmailAndPassword(ctx context.Context, email, password string) (*db_models.Account, error)
 	FindByEmail(ctx context.Context, email string) (*db_models.Account, error)
+	UpdateAccount(account *db_models.Account, ctx context.Context) error
+	UpdatePasswordByID(ctx context.Context, id, newPasswordHash string) error
 }
 
 type accountRepository struct {
 	db *gorm.DB
+}
+
+func (a *accountRepository) UpdatePasswordByID(ctx context.Context, id, newPasswordHash string) error {
+	return a.db.WithContext(ctx).
+		Model(&db_models.Account{}).
+		Where("id = ?", id).
+		Update("password_hash", newPasswordHash).Error
+}
+
+func (a *accountRepository) UpdateAccount(account *db_models.Account, ctx context.Context) error {
+	return a.db.WithContext(ctx).Save(account).Error
 }
 
 func (a *accountRepository) FindByEmail(ctx context.Context, email string) (*db_models.Account, error) {

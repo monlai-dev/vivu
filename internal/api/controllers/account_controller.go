@@ -71,3 +71,27 @@ func (a *AccountController) Login(c *gin.Context) {
 
 	utils.RespondSuccess(c, gin.H{"token": token}, "Login successful")
 }
+
+// ForgotPassword handles the forgot password functionality.
+// @Summary Request a password reset
+// @Description Sends a password reset link to the provided email if it exists
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param request body request_models.RequestForgotPassword true "Forgot password payload"
+// @Success 200 {object} utils.APIResponse
+// @Router /accounts/forgot-password [post]
+func (a *AccountController) ForgotPassword(c *gin.Context) {
+	var req request_models.RequestForgotPassword
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+
+	err := a.accountService.ForgotPassword(req.Email)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+	}
+
+	utils.RespondSuccess(c, nil, "If the email exists, a reset link has been sent")
+}

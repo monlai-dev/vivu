@@ -10,3 +10,13 @@ type SignUpRequest struct {
 	Email       string `json:"email" binding:"required,email"`
 	Password    string `json:"password" binding:"required,min=6"`
 }
+
+type ForgotPasswordRequest struct {
+	Email       string `json:"email" binding:"required,email"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+	Token       string `json:"token" binding:"required"`
+}
+
+type RequestForgotPassword struct {
+	Email string `json:"email" binding:"required,email"`
+}
