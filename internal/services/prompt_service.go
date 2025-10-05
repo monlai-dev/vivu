@@ -92,7 +92,7 @@ func (p *PromptService) GeneratePlanAndSave(ctx context.Context, sessionID strin
 		return uuid.Nil, err
 	}
 	resultUUid := p.savePlanAsyncWithRetry(sessionID, userId, plan)
-	if {
+	if resultUUid == uuid.Nil {
 		return uuid.Nil, fmt.Errorf("failed to save plan after retries")
 	}
 
