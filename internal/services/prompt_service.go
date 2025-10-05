@@ -32,7 +32,7 @@ type PromptServiceInterface interface {
 	GeneratePersonalizedPlan(ctx context.Context, sessionID string) (*response_models.QuizResultResponse, error)
 
 	GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error)
-	GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (*response_models.PlanOnly, error)
+	GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (uuid.UUID, error)
 }
 
 var vnLoc = func() *time.Location {
@@ -86,16 +86,20 @@ type QuizSession struct {
 
 // ---------- Plan generate & save ----------
 
-func (p *PromptService) GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (*response_models.PlanOnly, error) {
+func (p *PromptService) GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (uuid.UUID, error) {
 	plan, err := p.GeneratePlanOnly(ctx, sessionID)
 	if err != nil {
-		return nil, err
+		return uuid.Nil, err
 	}
-	go p.savePlanAsyncWithRetry(sessionID, userId, plan)
-	return plan, nil
+	resultUUid := p.savePlanAsyncWithRetry(sessionID, userId, plan)
+	if {
+		return uuid.Nil, fmt.Errorf("failed to save plan after retries")
+	}
+
+	return resultUUid, nil
 }
 
-func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUID, plan *response_models.PlanOnly) {
+func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUID, plan *response_models.PlanOnly) uuid.UUID {
 	const (
 		maxAttempts     = 5
 		baseDelay       = 300 * time.Millisecond
@@ -104,6 +108,9 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 
 	ctx, cancel := context.WithTimeout(context.Background(), totalTimeBudget)
 	defer cancel()
+
+	var result uuid.UUID
+	var err error
 
 	jitter := func(d time.Duration) time.Duration {
 		n := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -128,19 +135,19 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 	startVN = time.Date(startVN.Year(), startVN.Month(), startVN.Day(), 0, 0, 0, 0, vnLoc)
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		_, err := p.journeyRepo.ReplaceMaterializedPlan(ctx, &uuid.Nil, plan, &repositories.CreateJourneyInput{
+		result, err = p.journeyRepo.ReplaceMaterializedPlan(ctx, &uuid.Nil, plan, &repositories.CreateJourneyInput{
 			Title:     fmt.Sprintf("Plan for session %s", sessionID),
 			AccountID: userId,
 			StartDate: startVN,
 		})
 		if err == nil {
 			log.Printf("[plan] saved (session=%s, attempt=%d)", sessionID, attempt)
-			return
+			return uuid.Nil
 		}
 
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.Canceled) {
 			log.Printf("[plan] aborting retries due to context end (session=%s, attempt=%d, err=%v)", sessionID, attempt, err)
-			return
+			return uuid.Nil
 		}
 
 		delay := time.Duration(1<<uint(attempt-1)) * baseDelay
@@ -150,6 +157,8 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 	}
 
 	log.Printf("[plan] giving up after %d attempts (session=%s)", maxAttempts, sessionID)
+
+	return result
 }
 
 func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error) {
