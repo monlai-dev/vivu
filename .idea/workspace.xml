@@ -4,32 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/cmd/fx/mail_fx/init.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmd/fx/memcache_fx/init.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/models/db_models/plan.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/models/db_models/subscription.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/models/db_models/transaction.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/models/response_models/subcription_plan.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/repositories/plan_repository.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/services/mail_service.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/services/payment_service.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/services/plan_service.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pkg/memcache/reset_tokens.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/fx/account_fx/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/fx/account_fx/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/api/controllers/account_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/account_controller.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/db_models/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/account.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/request_models/login_request.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/login_request.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/repositories/account_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/account_repository.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/account_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/account_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/api_wrap.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/api_wrap.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/custom_err.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/custom_err.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/hashing.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/hashing.go" afterDir="false" />
-    </list>
+    <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
