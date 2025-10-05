@@ -142,7 +142,7 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 		})
 		if err == nil {
 			log.Printf("[plan] saved (session=%s, attempt=%d)", sessionID, attempt)
-			return uuid.Nil
+			return result
 		}
 
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.Canceled) {
@@ -158,7 +158,7 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 
 	log.Printf("[plan] giving up after %d attempts (session=%s)", maxAttempts, sessionID)
 
-	return result
+	return uuid.Nil
 }
 
 func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error) {
