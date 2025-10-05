@@ -244,6 +244,8 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) 
 		}
 	}
 
+	log.Printf("Prepared POI response map in %.3f ms", time.Since(startTime).Seconds())
+
 	for di := range plan.Days {
 		for ai := range plan.Days[di].Activities {
 			poid := plan.Days[di].Activities[ai].MainPOIID
@@ -324,6 +326,8 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) 
 			from.NextLegMapURL = url
 		}
 	}
+
+	log.Printf("Enriched plan with distances and URLs in %.3f ms", time.Since(startTime).Seconds())
 
 	plan.CreatedAt = time.Now()
 	return &plan, nil
