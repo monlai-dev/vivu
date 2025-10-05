@@ -80,7 +80,7 @@ func getEmbeddingConfig() EmbeddingConfig {
 		}
 	case "gemini":
 		apiKey = os.Getenv("GEMINI_API_KEY")
-		model = getEnvWithDefault("GEMINI_MODEL", "gemini-1.5-flash-latest")
+		model = getEnvWithDefault("GEMINI_MODEL", "gemini-2.5-flash-lite")
 		if apiKey == "" {
 			log.Fatal("GEMINI_API_KEY is required when using Gemini provider")
 		}
