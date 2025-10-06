@@ -140,11 +140,10 @@ func (a *AccountService) ForgotPassword(email string) error {
 	a.resetStore.Set(resetToken, account.Email, a.resetTTL)
 
 	go func() {
-		otpCode, _ := utils.GenerateOtpCode(6)
 
 		err := a.mailService.SendMailToResetPassword(
 			account.Email,
-			otpCode,
+			resetToken,
 		)
 		if err != nil {
 			log.Printf("Failed to send password reset email to %s: %v", account.Email, err)
