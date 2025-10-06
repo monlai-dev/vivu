@@ -29,16 +29,12 @@ type AccountService struct {
 
 func (a *AccountService) VerifyOtpToken(request request_models.RequestVerifyOtpToken) error {
 
-	email, exist := a.resetStore.Peek(request.Token)
-	if !exist {
-		return utils.ErrInvalidToken
+	email, tokenValid := a.resetStore.Peek(request.Token)
+	if tokenValid && email == request.Email {
+		return nil
 	}
 
-	if email != request.Email {
-		return utils.ErrInvalidToken
-	}
-
-	return nil
+	return utils.ErrInvalidToken
 }
 
 func NewAccountService(accountRepo repositories.AccountRepository, mailService IMailService, resetStore mem.ResetTokenStore) AccountServiceInterface {
