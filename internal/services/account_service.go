@@ -30,6 +30,9 @@ type AccountService struct {
 func (a *AccountService) VerifyOtpToken(request request_models.RequestVerifyOtpToken) error {
 
 	email, tokenValid := a.resetStore.Peek(request.Token)
+
+	log.Printf("Verifying OTP token: %s for email: %s, valid: %v", request.Token, email, tokenValid)
+
 	if tokenValid && email == request.Email {
 		return nil
 	}
