@@ -20,3 +20,8 @@ type ForgotPasswordRequest struct {
 type RequestForgotPassword struct {
 	Email string `json:"email" binding:"required,email"`
 }
+
+type RequestVerifyOtpToken struct {
+	Email string `json:"email" binding:"required,email"`
+	Token string `json:"token" binding:"required"`
+}

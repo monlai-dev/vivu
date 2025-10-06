@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"net"
 	"net/smtp"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -17,7 +16,8 @@ type IMailService interface {
 	SendMailToNotifyUser(
 		to, subject, body, ctaText, ctaURL string,
 	) error
-	SendMailToResetPassword(email, token string) error
+	// Pass the OTP code as the second arg (re-using the method name to avoid breaking callers).
+	SendMailToResetPassword(to, code string) error
 }
 
 // SMTPConfig holds your SMTP + branding config.
@@ -31,8 +31,9 @@ type SMTPConfig struct {
 	UseSSL     bool   // true for SMTPS 465, false for STARTTLS 587
 	RequireTLS bool   // if true, fail if STARTTLS not available
 
-	AppName    string // used in footer, header
-	AppBaseURL string // e.g. "https://yourapp.com"
+	AppName           string // used in footer, header
+	AppBaseURL        string // e.g. "https://yourapp.com"
+	OTPExpiresMinutes int    // optional: used in copy, e.g. 10
 }
 
 type smtpMailService struct {
@@ -74,17 +75,19 @@ func (s *smtpMailService) SendMailToNotifyUser(
 	return s.send(to, subject, html, text)
 }
 
-func (s *smtpMailService) SendMailToResetPassword(to, token string) error {
-	link := fmt.Sprintf("%s/reset-password?token=%s", strings.TrimRight(s.cfg.AppBaseURL, "/"), url.QueryEscape(token))
-	subject := "Reset your password"
+// Now sends an OTP instead of a link. Pass the OTP code as the second param.
+func (s *smtpMailService) SendMailToResetPassword(to, code string) error {
+	subject := "Your verification code"
+	intro := "Use the verification code below to reset your password. For your security, do not share this code with anyone."
 
+	expires := s.cfg.OTPExpiresMinutes
 	html, text, err := s.renderEmail(EmailData{
-		Title:     subject,
-		Intro:     "We received a request to reset your password. Click the button below to continue. If you didn’t request this, you can safely ignore this email.",
-		ButtonURL: link,
-		ButtonTxt: "Reset Password",
-		AppName:   s.cfg.AppName,
-		Year:      time.Now().Year(),
+		Title:          subject,
+		Intro:          intro,
+		Code:           code,
+		ExpiresMinutes: expires,
+		AppName:        s.cfg.AppName,
+		Year:           time.Now().Year(),
 	})
 	if err != nil {
 		return err
@@ -95,14 +98,17 @@ func (s *smtpMailService) SendMailToResetPassword(to, token string) error {
 // ------------------- Rendering -------------------
 
 type EmailData struct {
-	Title     string
-	Intro     string
-	ButtonURL string
-	ButtonTxt string
-	AppName   string
-	Year      int
+	Title          string
+	Intro          string
+	ButtonURL      string
+	ButtonTxt      string
+	Code           string // OTP
+	ExpiresMinutes int
+	AppName        string
+	Year           int
 }
 
+// NOTE: If .Code is set, the OTP block is shown and the CTA button is suppressed.
 const baseHTMLTemplate = `<!doctype html>
 <html>
 <head>
@@ -166,9 +172,7 @@ const baseHTMLTemplate = `<!doctype html>
       color: #cbd5e1;
       font-size: 16px;
     }
-    .btn-container {
-      margin: 32px 0 24px;
-    }
+    .btn-container { margin: 32px 0 24px; }
     .btn { 
       display: inline-block; 
       padding: 16px 32px; 
@@ -187,6 +191,33 @@ const baseHTMLTemplate = `<!doctype html>
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.3);
       transform: translateY(-1px);
     }
+
+    /* OTP block */
+    .otp-wrap {
+      margin: 28px 0 8px;
+      padding: 18px 20px;
+      background: rgba(148,163,184,0.08);
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 12px;
+    }
+    .otp-code {
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      text-align: center;
+      color: #f8fafc;
+      padding: 10px 0 6px;
+      user-select: all;
+    }
+    .otp-meta {
+      color: #94a3b8;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 6px;
+    }
+
     .link-fallback {
       background: rgba(148, 163, 184, 0.08);
       border: 1px solid rgba(148, 163, 184, 0.15);
@@ -208,10 +239,8 @@ const baseHTMLTemplate = `<!doctype html>
       display: inline-block;
       margin-top: 8px;
     }
-    .link-text:hover {
-      color: #93c5fd;
-      text-decoration: underline;
-    }
+    .link-text:hover { color: #93c5fd; text-decoration: underline; }
+
     .footer { 
       padding: 24px 32px; 
       color: #64748b; 
@@ -233,53 +262,24 @@ const baseHTMLTemplate = `<!doctype html>
       .footer { padding: 20px; }
       h1 { font-size: 24px; }
       .btn { padding: 14px 28px; font-size: 15px; }
+      .otp-code { font-size: 26px; letter-spacing: 4px; }
     }
     
     @media (prefers-color-scheme: light) {
-      body { 
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        color: #0f172a; 
-      }
-      .container { 
-        background: #ffffff;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
-      }
-      .header {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-      }
-      .brand { 
-        color: #1e40af;
-        background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
+      body { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: #0f172a; }
+      .container { background: #ffffff; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05); }
+      .header { background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
+      .brand { color: #1e40af; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
       h1 { color: #0f172a; }
       p { color: #475569; }
-      .btn {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1);
-      }
-      .btn:hover {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.15);
-      }
-      .link-fallback {
-        background: rgba(0, 0, 0, 0.02);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-      }
+      .btn { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1); }
+      .btn:hover { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.15); }
+      .link-fallback { background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.08); }
       .muted { color: #64748b; }
       .link-text { color: #2563eb; }
       .link-text:hover { color: #1d4ed8; }
-      .footer { 
-        color: #64748b;
-        background: #f8fafc;
-        border-top: 1px solid rgba(0, 0, 0, 0.06);
-      }
-      .divider {
-        background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 50%, transparent 100%);
-      }
+      .footer { color: #64748b; background: #f8fafc; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+      .divider { background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 50%, transparent 100%); }
     }
   </style>
 </head>
@@ -292,14 +292,21 @@ const baseHTMLTemplate = `<!doctype html>
       <div class="hero">
         <h1>{{.Title}}</h1>
         <p>{{.Intro}}</p>
-        {{if .ButtonURL}}
+
+        {{if .Code}}
+          <div class="otp-wrap">
+            <span class="otp-code">{{.Code}}</span>
+            <div class="otp-meta">
+              {{if gt .ExpiresMinutes 0}}This code expires in {{.ExpiresMinutes}} minutes.{{else}}This code will expire soon.{{end}}
+            </div>
+          </div>
+          <p class="muted">If you didn’t request this, you can ignore this email.</p>
+        {{else if .ButtonURL}}
           <div class="btn-container">
             <a class="btn" href="{{.ButtonURL}}">{{.ButtonTxt}}</a>
           </div>
           <div class="link-fallback">
-            <p class="muted">
-              If the button doesn't work, copy and paste this link into your browser:
-            </p>
+            <p class="muted">If the button doesn't work, copy and paste this link into your browser:</p>
             <a href="{{.ButtonURL}}" class="link-text">{{.ButtonURL}}</a>
           </div>
         {{end}}
@@ -311,11 +318,14 @@ const baseHTMLTemplate = `<!doctype html>
   </div>
 </body>
 </html>`
+
 const plainTextTemplate = `{{.Title}}
 
 {{.Intro}}
 
-{{if .ButtonURL}}Open this link:
+{{if .Code}}CODE: {{.Code}}
+{{if gt .ExpiresMinutes 0}}(Expires in {{.ExpiresMinutes}} minutes){{end}}
+{{else if .ButtonURL}}Open this link:
 {{.ButtonURL}}
 {{end}}
 

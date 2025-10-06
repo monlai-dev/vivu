@@ -7,8 +7,7 @@ import (
 )
 
 type ResetTokenStore interface {
-	// Set stores token -> accountID with a TTL.
-	Set(token string, accountID string, ttl time.Duration)
+	Set(token string, accountEmail string, ttl time.Duration)
 
 	// Consume returns the accountID for token if not expired,
 	// and removes the token (single-use). Returns "" if missing/expired.
@@ -19,7 +18,7 @@ type ResetTokenStore interface {
 }
 
 type entry struct {
-	accountID string
+	email     string
 	expiresAt time.Time
 }
 
@@ -35,11 +34,11 @@ func NewResetTokens() *ResetTokens {
 	}
 }
 
-func (s *ResetTokens) Set(token string, accountID string, ttl time.Duration) {
+func (s *ResetTokens) Set(token string, accountEmail string, ttl time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data[token] = entry{
-		accountID: accountID,
+		email:     accountEmail,
 		expiresAt: time.Now().Add(ttl),
 	}
 }
@@ -57,7 +56,7 @@ func (s *ResetTokens) Consume(token string) string {
 		return ""
 	}
 	delete(s.data, token) // single-use
-	return e.accountID
+	return e.email
 }
 
 func (s *ResetTokens) Peek(token string) (string, bool) {
@@ -68,5 +67,5 @@ func (s *ResetTokens) Peek(token string) (string, bool) {
 	if !ok || time.Now().After(e.expiresAt) {
 		return "", false
 	}
-	return e.accountID, true
+	return e.email, true
 }

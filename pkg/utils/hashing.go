@@ -33,3 +33,17 @@ func GenerateSecureToken(length int) (string, error) {
 	// Convert the byte slice to a hexadecimal string
 	return hex.EncodeToString(bytes), nil
 }
+
+func GenerateOtpCode(length int) (string, error) {
+	if length <= 0 {
+		return "", errors.New("invalid OTP length")
+	}
+
+	const digits = "0123456789"
+	otp := make([]byte, length)
+	for i := range otp {
+		otp[i] = digits[rand.Intn(len(digits))]
+	}
+
+	return string(otp), nil
+}

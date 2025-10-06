@@ -15,6 +15,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/accounts/forgot-password": {
+            "post": {
+                "description": "Sends a password reset link to the provided email if it exists",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Request a password reset",
+                "parameters": [
+                    {
+                        "description": "Forgot password payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.RequestForgotPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/accounts/login": {
             "post": {
                 "description": "Authenticate a user and return a token",
@@ -76,6 +110,46 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/request_models.SignUpRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/accounts/verify-otp": {
+            "post": {
+                "description": "Validates the provided OTP token for account verification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Verify an OTP token",
+                "parameters": [
+                    {
+                        "description": "OTP token verification payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.RequestVerifyOtpToken"
                         }
                     }
                 ],
@@ -682,6 +756,32 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.RequestForgotPassword": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.RequestVerifyOtpToken": {
+            "type": "object",
+            "required": [
+                "email",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "token": {
                     "type": "string"
                 }
             }

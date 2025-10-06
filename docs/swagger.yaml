@@ -87,6 +87,23 @@ definitions:
       user_id:
         type: string
     type: object
+  request_models.RequestForgotPassword:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  request_models.RequestVerifyOtpToken:
+    properties:
+      email:
+        type: string
+      token:
+        type: string
+    required:
+    - email
+    - token
+    type: object
   request_models.SignUpRequest:
     properties:
       display_name:
@@ -329,6 +346,28 @@ definitions:
 info:
   contact: {}
 paths:
+  /accounts/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Sends a password reset link to the provided email if it exists
+      parameters:
+      - description: Forgot password payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.RequestForgotPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Request a password reset
+      tags:
+      - Accounts
   /accounts/login:
     post:
       consumes:
@@ -379,6 +418,32 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIResponse'
       summary: Register a new account
+      tags:
+      - Accounts
+  /accounts/verify-otp:
+    post:
+      consumes:
+      - application/json
+      description: Validates the provided OTP token for account verification
+      parameters:
+      - description: OTP token verification payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.RequestVerifyOtpToken'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Verify an OTP token
       tags:
       - Accounts
   /journeys/get-details-info-of-journey-by-id/{journeyId}:

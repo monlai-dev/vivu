@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 	"vivu/internal/models/db_models"
@@ -17,6 +16,7 @@ type AccountServiceInterface interface {
 	CreateAccount(request request_models.SignUpRequest) error
 	ForgotPassword(email string) error
 	VerifyAndConsumeResetToken(resetRequest request_models.ForgotPasswordRequest) (string, error)
+	VerifyOtpToken(request request_models.RequestVerifyOtpToken) error
 }
 
 type AccountService struct {
@@ -25,6 +25,20 @@ type AccountService struct {
 	resetStore   mem.ResetTokenStore // inject this
 	resetTTL     time.Duration       // e.g., 1 * time.Hour
 	publicAppURL string
+}
+
+func (a *AccountService) VerifyOtpToken(request request_models.RequestVerifyOtpToken) error {
+
+	email, exist := a.resetStore.Peek(request.Token)
+	if !exist {
+		return utils.ErrInvalidToken
+	}
+
+	if email != request.Email {
+		return utils.ErrInvalidToken
+	}
+
+	return nil
 }
 
 func NewAccountService(accountRepo repositories.AccountRepository, mailService IMailService, resetStore mem.ResetTokenStore) AccountServiceInterface {
@@ -118,23 +132,20 @@ func (a *AccountService) ForgotPassword(email string) error {
 	}
 
 	// 2) Generate token
-	resetToken, err := utils.GenerateSecureToken(32)
+	resetToken, err := utils.GenerateOtpCode(6)
 	if err != nil {
 		return utils.ErrThirdService
 	}
 
 	// 3) Cache the token (token -> accountID) with TTL
-	a.resetStore.Set(resetToken, account.ID.String(), a.resetTTL)
+	a.resetStore.Set(resetToken, account.Email, a.resetTTL)
 
-	// 4) Send email (link carries the token)
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", a.publicAppURL, resetToken)
 	go func() {
-		err := a.mailService.SendMailToNotifyUser(
+		otpCode, _ := utils.GenerateOtpCode(6)
+
+		err := a.mailService.SendMailToResetPassword(
 			account.Email,
-			"Password Reset Request",
-			"We received a request to reset your password. Click the link below to reset it.",
-			"Reset Password",
-			resetURL,
+			otpCode,
 		)
 		if err != nil {
 			log.Printf("Failed to send password reset email to %s: %v", account.Email, err)
@@ -145,7 +156,6 @@ func (a *AccountService) ForgotPassword(email string) error {
 	return nil
 }
 
-// Verify + consume token (single-use) when user submits the new password form.
 func (a *AccountService) VerifyAndConsumeResetToken(resetRequest request_models.ForgotPasswordRequest) (string, error) {
 	accountID := a.resetStore.Consume(resetRequest.Token)
 	if accountID == "" {
