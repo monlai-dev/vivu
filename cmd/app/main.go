@@ -196,6 +196,7 @@ func RegisterRoutes(r *gin.Engine,
 	accountGroup.POST("/login", accountController.Login)
 	accountGroup.POST("/forgot-password", accountController.ForgotPassword)
 	accountGroup.POST("/verify-otp", accountController.VerifyOtpToken)
+	accountGroup.POST("/reset-password", accountController.ResetPasswordWithOtp)
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)

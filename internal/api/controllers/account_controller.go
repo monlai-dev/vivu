@@ -96,7 +96,6 @@ func (a *AccountController) ForgotPassword(c *gin.Context) {
 	utils.RespondSuccess(c, nil, "If the email exists, a reset link has been sent")
 }
 
-
 // VerifyOtpToken handles the verification of an OTP token.
 // @Summary Verify an OTP token
 // @Description Validates the provided OTP token for account verification
@@ -121,4 +120,30 @@ func (a *AccountController) VerifyOtpToken(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, nil, "Otp token verified successfully")
+}
+
+// ResetPasswordWithOtp handles the password reset using an OTP token.
+// @Summary Reset password with OTP
+// @Description Resets the user's password using a valid OTP token
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param request body request_models.ForgotPasswordRequest true "Password reset payload"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Router /accounts/reset-password [post]
+func (a *AccountController) ResetPasswordWithOtp(c *gin.Context) {
+	var req request_models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+
+	_, err := a.accountService.VerifyAndConsumeResetToken(req)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, nil, "Password has been reset successfully")
 }
