@@ -22,10 +22,17 @@ func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 	now := time.Now().Unix()
 	b.CreatedAt = now
 	b.UpdatedAt = now
+
 	return nil
 }
 
 func (b *BaseModel) BeforeUpdate(tx *gorm.DB) error {
 	b.UpdatedAt = time.Now().Unix()
+	return nil
+}
+
+func (b *BaseModel) BeforeDelete(tx *gorm.DB) error {
+	b.DeletedAt.Time = time.Now()
+	b.DeletedAt.Valid = true
 	return nil
 }
