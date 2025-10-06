@@ -24,7 +24,7 @@ type JourneyRepository interface {
 	AddPoiToJourneyWithIdOnGivenDay(ctx context.Context, journeyId string, poiId string, day time.Time) error
 	AddPoiToJourneyWithStartEnd(ctx context.Context, journeyId string, poiId string, start time.Time, end *time.Time) error
 }
-	
+
 type journeyRepository struct {
 	db *gorm.DB
 }
@@ -103,16 +103,27 @@ func (r *journeyRepository) AddPoiToJourneyWithIdOnGivenDay(ctx context.Context,
 	return r.db.WithContext(ctx).Create(&newActivity).Error
 }
 
-func (r *journeyRepository) RemovePoiFromJourneyWithId(ctx context.Context, journeyId string, poiId string) error {
-
+func (r *journeyRepository) RemovePoiFromJourneyWithId(
+	ctx context.Context, journeyId string, poiId string,
+) error {
 	poiUUID, err := uuid.Parse(poiId)
 	if err != nil {
 		return err
 	}
 
-	return r.db.WithContext(ctx).
+	// (Optional) if your journey_days.journey_id is uuid, parse it too:
+	// jUUID, err := uuid.Parse(journeyId); if err != nil { return err }
+
+	// Subquery to collect activity IDs that match the join
+	sub := r.db.WithContext(ctx).
+		Model(&dbm.JourneyActivity{}).
+		Select("journey_activities.id").
 		Joins("JOIN journey_days ON journey_activities.journey_day_id = journey_days.id").
-		Where("journey_days.journey_id = ? AND journey_activities.selected_poi_id = ?", journeyId, poiUUID).
+		Where("journey_days.journey_id = ? AND journey_activities.selected_poi_id = ?", journeyId, poiUUID)
+
+	// Now delete by those IDs (GORM will generate a plain UPDATE for soft-delete with no JOIN)
+	return r.db.WithContext(ctx).
+		Where("id IN (?)", sub).
 		Delete(&dbm.JourneyActivity{}).Error
 }
 
