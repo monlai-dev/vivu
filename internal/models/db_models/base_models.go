@@ -14,7 +14,6 @@ type BaseModel struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
-// Hooks to manage int64 timestamps
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 	if b.ID == uuid.Nil {
 		b.ID = uuid.New()
@@ -28,11 +27,5 @@ func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 
 func (b *BaseModel) BeforeUpdate(tx *gorm.DB) error {
 	b.UpdatedAt = time.Now().Unix()
-	return nil
-}
-
-func (b *BaseModel) BeforeDelete(tx *gorm.DB) error {
-	b.DeletedAt.Time = time.Now()
-	b.DeletedAt.Valid = true
 	return nil
 }
