@@ -47,6 +47,7 @@ jobs:
           MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           PORT: 3636
         run: |
           ssh -o StrictHostKeyChecking=no "$EC2_HOST" "
@@ -93,6 +94,7 @@ jobs:
           POSTGRES_URL=${POSTGRES_URL}
           GEMINI_API_KEY=${GEMINI_API_KEY}
           MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
+            SMTP_PASSWORD=${SMTP_PASSWORD}
           PORT=${PORT}
           EOT
           
