@@ -166,7 +166,7 @@ func (a *AccountService) VerifyAndConsumeResetToken(resetRequest request_models.
 		return "", utils.ErrDatabaseError
 	}
 
-	err = a.accountRepo.UpdatePasswordByID(context.Background(), accountID, hashedPassword)
+	err = a.accountRepo.UpdatePasswordByEmail(context.Background(), accountID, hashedPassword)
 	if err != nil {
 		return "", utils.ErrDatabaseError
 	}
