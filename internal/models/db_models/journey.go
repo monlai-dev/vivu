@@ -74,6 +74,7 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 			ad := resp.JourneyActivityDetail{
 				ID:           a.ID,
 				Time:         formatTime(a.Time),
+				EndTime:      formatTime(*a.EndTime),
 				ActivityType: a.ActivityType,
 				Notes:        a.Notes,
 			}

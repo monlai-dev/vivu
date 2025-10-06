@@ -34,6 +34,7 @@ type JourneyDayResponse struct {
 type JourneyActivityDetail struct {
 	ID           uuid.UUID   `json:"id"`
 	Time         string      `json:"time"` // RFC3339 date/time
+	EndTime      string      `json:"end_time,omitempty"`
 	ActivityType string      `json:"activity_type"`
 	Notes        string      `json:"notes,omitempty"`
 	SelectedPOI  *POISummary `json:"selected_poi,omitempty"`
