@@ -19,6 +19,7 @@ type JourneyActivity struct {
 	BaseModel
 	JourneyDayID  uuid.UUID
 	Time          time.Time
+	EndTime       *time.Time
 	ActivityType  string
 	SelectedPOIID uuid.UUID
 	Notes         string

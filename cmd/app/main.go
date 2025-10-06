@@ -218,4 +218,6 @@ func RegisterRoutes(r *gin.Engine,
 	journeyGroup := r.Group("/journeys", middleware.JWTAuthMiddleware())
 	journeyGroup.GET("/get-journey-by-userid", journeyController.GetJourneyByUserId)
 	journeyGroup.GET("/get-details-info-of-journey-by-id/:journeyId", journeyController.GetDetailsInfoOfJourneyById)
+	journeyGroup.POST("/add-poi-to-journey", journeyController.AddPoiToJourney)
+	journeyGroup.POST("/remove-poi-from-journey", journeyController.RemovePoiFromJourney)
 }

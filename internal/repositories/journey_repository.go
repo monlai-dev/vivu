@@ -20,10 +20,100 @@ type JourneyRepository interface {
 
 	GetListOfJourneyByUserId(ctx context.Context, page int, pagesize int, userId string) ([]dbm.Journey, error)
 	GetDetailsOfJourneyById(ctx context.Context, journeyId string) (*dbm.Journey, error)
+	RemovePoiFromJourneyWithId(ctx context.Context, journeyId string, poiId string) error
+	AddPoiToJourneyWithIdOnGivenDay(ctx context.Context, journeyId string, poiId string, day time.Time) error
+	AddPoiToJourneyWithStartEnd(ctx context.Context, journeyId string, poiId string, start time.Time, end *time.Time) error
 }
-
+	
 type journeyRepository struct {
 	db *gorm.DB
+}
+
+func (r *journeyRepository) AddPoiToJourneyWithStartEnd(
+	ctx context.Context,
+	journeyId string,
+	poiId string,
+	start time.Time,
+	end *time.Time,
+) error {
+	poiUUID, err := uuid.Parse(poiId)
+	if err != nil {
+		return err
+	}
+
+	// Normalize start to VN and derive the owning JourneyDay by range
+	startVN := start.In(vnLoc)
+	dayStart := time.Date(startVN.Year(), startVN.Month(), startVN.Day(), 0, 0, 0, 0, vnLoc)
+	dayEnd := dayStart.Add(24 * time.Hour)
+
+	var journeyDay dbm.JourneyDay
+	if err := r.db.WithContext(ctx).
+		Where("journey_id = ? AND date >= ? AND date < ?", journeyId, dayStart, dayEnd).
+		First(&journeyDay).Error; err != nil {
+		return err
+	}
+
+	var endVN *time.Time
+	if end != nil {
+		evn := end.In(vnLoc)
+		// If end is before start, assume cross-midnight
+		if evn.Before(startVN) {
+			evn = evn.Add(24 * time.Hour)
+		}
+		endVN = &evn
+	}
+
+	act := dbm.JourneyActivity{
+		JourneyDayID:  journeyDay.ID,
+		Time:          startVN,
+		EndTime:       endVN,
+		ActivityType:  "poi",
+		SelectedPOIID: poiUUID,
+		Notes:         "",
+	}
+	return r.db.WithContext(ctx).Create(&act).Error
+}
+
+func (r *journeyRepository) AddPoiToJourneyWithIdOnGivenDay(ctx context.Context, journeyId string, poiId string, day time.Time) error {
+
+	poiUUID, err := uuid.Parse(poiId)
+	if err != nil {
+		return err
+	}
+
+	normalizedDay := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location())
+
+	var journeyDay dbm.JourneyDay
+	err = r.db.WithContext(ctx).
+		Where("journey_id = ? AND date = ?", journeyId, normalizedDay).
+		First(&journeyDay).Error
+
+	if err != nil {
+		return err
+	}
+
+	newActivity := dbm.JourneyActivity{
+		JourneyDayID:  journeyDay.ID,
+		Time:          day, // You might want to set a specific time here
+		ActivityType:  "poi",
+		SelectedPOIID: poiUUID,
+		Notes:         "",
+	}
+
+	return r.db.WithContext(ctx).Create(&newActivity).Error
+}
+
+func (r *journeyRepository) RemovePoiFromJourneyWithId(ctx context.Context, journeyId string, poiId string) error {
+
+	poiUUID, err := uuid.Parse(poiId)
+	if err != nil {
+		return err
+	}
+
+	return r.db.WithContext(ctx).
+		Joins("JOIN journey_days ON journey_activities.journey_day_id = journey_days.id").
+		Where("journey_days.journey_id = ? AND journey_activities.selected_poi_id = ?", journeyId, poiUUID).
+		Delete(&dbm.JourneyActivity{}).Error
 }
 
 func (r *journeyRepository) GetDetailsOfJourneyById(ctx context.Context, journeyId string) (*dbm.Journey, error) {
@@ -163,6 +253,7 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 				return err
 			}
 
+			// inside the for _, d := range plan.Days { ... } loop
 			acts := make([]dbm.JourneyActivity, 0, len(d.Activities))
 			for _, a := range d.Activities {
 				if a.MainPOIID == "" {
@@ -173,16 +264,31 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 					continue
 				}
 
-				// Parse "HH:MM" *in Vietnam time*
-				actTime := dayDate
+				// VN-local base day
+				actStart := dayDate
 				if t, err := time.ParseInLocation("15:04", a.StartTime, vnLoc); err == nil {
-					actTime = time.Date(dayDate.Year(), dayDate.Month(), dayDate.Day(),
+					actStart = time.Date(dayDate.Year(), dayDate.Month(), dayDate.Day(),
 						t.Hour(), t.Minute(), 0, 0, vnLoc)
+				}
+
+				// Parse end time if provided
+				var actEndPtr *time.Time
+				if a.EndTime != "" {
+					if et, err := time.ParseInLocation("15:04", a.EndTime, vnLoc); err == nil {
+						etFull := time.Date(dayDate.Year(), dayDate.Month(), dayDate.Day(),
+							et.Hour(), et.Minute(), 0, 0, vnLoc)
+						// ensure end >= start (adjust to next day if user meant crossing midnight)
+						if etFull.Before(actStart) {
+							etFull = etFull.Add(24 * time.Hour)
+						}
+						actEndPtr = &etFull
+					}
 				}
 
 				acts = append(acts, dbm.JourneyActivity{
 					JourneyDayID:  jd.ID,
-					Time:          actTime, // VN tz aware
+					Time:          actStart,  // start
+					EndTime:       actEndPtr, // end (nullable)
 					ActivityType:  "poi",
 					SelectedPOIID: poiID,
 					Notes:         "",
@@ -193,6 +299,7 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 					return err
 				}
 			}
+
 		}
 
 		return nil

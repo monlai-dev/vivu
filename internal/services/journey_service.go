@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"time"
 	"vivu/internal/models/db_models"
 	"vivu/internal/models/response_models"
 	"vivu/internal/repositories"
@@ -11,10 +12,32 @@ import (
 type JourneyServiceInterface interface {
 	GetListOfJourneyByUserId(ctx context.Context, page int, pagesize int, userId string) ([]response_models.JourneyResponse, error)
 	GetDetailsInfoOfJourneyById(ctx context.Context, journeyId string) (*response_models.JourneyDetailResponse, error)
+	AddPoiToJourneyWithGivenStartAndEndDate(ctx context.Context, journeyId string, poiId string, startDate time.Time, endDate time.Time) error
+	RemovePoiFromJourney(ctx context.Context, journeyId string, poiId string) error
 }
 
 type JourneyService struct {
 	journeyRepo repositories.JourneyRepository
+}
+
+func (j *JourneyService) RemovePoiFromJourney(ctx context.Context, journeyId string, poiId string) error {
+
+	err := j.journeyRepo.RemovePoiFromJourneyWithId(ctx, journeyId, poiId)
+	if err != nil {
+		return utils.ErrDatabaseError
+	}
+
+	return nil
+}
+
+func (j *JourneyService) AddPoiToJourneyWithGivenStartAndEndDate(ctx context.Context, journeyId string, poiId string, startDate time.Time, endDate time.Time) error {
+
+	err := j.journeyRepo.AddPoiToJourneyWithStartEnd(ctx, journeyId, poiId, startDate, &endDate)
+	if err != nil {
+		return utils.ErrDatabaseError
+	}
+
+	return nil
 }
 
 func NewJourneyService(journeyRepo repositories.JourneyRepository) JourneyServiceInterface {

@@ -209,6 +209,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/journeys/add-poi-to-journey": {
+            "post": {
+                "description": "Add a point of interest (POI) to a specific journey with optional start and end times",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Journey"
+                ],
+                "summary": "Add POI to journey",
+                "parameters": [
+                    {
+                        "description": "Journey ID, POI ID, Start Time, End Time",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.AddPoiToJourneyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/journeys/get-details-info-of-journey-by-id/{journeyId}": {
             "get": {
                 "security": [
@@ -305,6 +339,40 @@ const docTemplate = `{
                                     "$ref": "#/definitions/response_models.JourneyResponse"
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/journeys/remove-poi-from-journey": {
+            "post": {
+                "description": "Remove a point of interest (POI) from a specific journey",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Journey"
+                ],
+                "summary": "Remove POI from journey",
+                "parameters": [
+                    {
+                        "description": "Journey ID, POI ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.RemovePoiFromJourneyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
                         }
                     }
                 }
@@ -668,6 +736,27 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "request_models.AddPoiToJourneyRequest": {
+            "type": "object",
+            "required": [
+                "journey_id",
+                "poi_id"
+            ],
+            "properties": {
+                "end_time": {
+                    "type": "string"
+                },
+                "journey_id": {
+                    "type": "string"
+                },
+                "poi_id": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
         "request_models.CreatePoiRequest": {
             "type": "object",
             "properties": {
@@ -816,6 +905,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.RemovePoiFromJourneyRequest": {
+            "type": "object",
+            "required": [
+                "journey_id",
+                "poi_id"
+            ],
+            "properties": {
+                "journey_id": {
+                    "type": "string"
+                },
+                "poi_id": {
                     "type": "string"
                 }
             }

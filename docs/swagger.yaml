@@ -1,4 +1,18 @@
 definitions:
+  request_models.AddPoiToJourneyRequest:
+    properties:
+      end_time:
+        type: string
+      journey_id:
+        type: string
+      poi_id:
+        type: string
+      start_time:
+        type: string
+    required:
+    - journey_id
+    - poi_id
+    type: object
   request_models.CreatePoiRequest:
     properties:
       address:
@@ -100,6 +114,16 @@ definitions:
     properties:
       user_id:
         type: string
+    type: object
+  request_models.RemovePoiFromJourneyRequest:
+    properties:
+      journey_id:
+        type: string
+      poi_id:
+        type: string
+    required:
+    - journey_id
+    - poi_id
     type: object
   request_models.RequestForgotPassword:
     properties:
@@ -486,6 +510,29 @@ paths:
       summary: Verify an OTP token
       tags:
       - Accounts
+  /journeys/add-poi-to-journey:
+    post:
+      consumes:
+      - application/json
+      description: Add a point of interest (POI) to a specific journey with optional
+        start and end times
+      parameters:
+      - description: Journey ID, POI ID, Start Time, End Time
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.AddPoiToJourneyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Add POI to journey
+      tags:
+      - Journey
   /journeys/get-details-info-of-journey-by-id/{journeyId}:
     get:
       consumes:
@@ -549,6 +596,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Get journeys by user ID
+      tags:
+      - Journey
+  /journeys/remove-poi-from-journey:
+    post:
+      consumes:
+      - application/json
+      description: Remove a point of interest (POI) from a specific journey
+      parameters:
+      - description: Journey ID, POI ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.RemovePoiFromJourneyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Remove POI from journey
       tags:
       - Journey
   /pois/create-poi:
