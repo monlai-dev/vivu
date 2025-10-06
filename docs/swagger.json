@@ -200,6 +200,11 @@
         },
         "/journeys/add-poi-to-journey": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Add a point of interest (POI) to a specific journey with optional start and end times",
                 "consumes": [
                     "application/json"
@@ -335,6 +340,11 @@
         },
         "/journeys/remove-poi-from-journey": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Remove a point of interest (POI) from a specific journey",
                 "consumes": [
                     "application/json"

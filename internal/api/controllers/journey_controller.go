@@ -94,6 +94,7 @@ func (j *JourneyController) GetDetailsInfoOfJourneyById(c *gin.Context) {
 // @Produce json
 // @Param request body request_models.AddPoiToJourneyRequest true "Journey ID, POI ID, Start Time, End Time"
 // @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /journeys/add-poi-to-journey [post]
 func (j *JourneyController) AddPoiToJourney(c *gin.Context) {
 
@@ -120,6 +121,7 @@ func (j *JourneyController) AddPoiToJourney(c *gin.Context) {
 // @Produce json
 // @Param request body request_models.RemovePoiFromJourneyRequest true "Journey ID, POI ID"
 // @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /journeys/remove-poi-from-journey [post]
 func (j *JourneyController) RemovePoiFromJourney(c *gin.Context) {
 	var req request_models.RemovePoiFromJourneyRequest

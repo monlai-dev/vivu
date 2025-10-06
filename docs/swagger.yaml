@@ -530,6 +530,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Add POI to journey
       tags:
       - Journey
@@ -617,6 +619,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Remove POI from journey
       tags:
       - Journey
