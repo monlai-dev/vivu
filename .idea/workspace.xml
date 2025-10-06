@@ -5,14 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/internal/api/controllers/account_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/account_controller.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/request_models/login_request.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/login_request.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/account_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/account_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/mail_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/mail_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/memcache/reset_tokens.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/memcache/reset_tokens.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/utils/hashing.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/utils/hashing.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

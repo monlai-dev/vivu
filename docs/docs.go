@@ -129,6 +129,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/accounts/reset-password": {
+            "post": {
+                "description": "Resets the user's password using a valid OTP token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Reset password with OTP",
+                "parameters": [
+                    {
+                        "description": "Password reset payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/accounts/verify-otp": {
             "post": {
                 "description": "Validates the provided OTP token for account verification",
@@ -656,6 +696,26 @@ const docTemplate = `{
                     "$ref": "#/definitions/request_models.PoiDetails"
                 },
                 "province": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "token": {
                     "type": "string"
                 }
             }

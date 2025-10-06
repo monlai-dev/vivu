@@ -20,6 +20,20 @@ definitions:
       province:
         type: string
     type: object
+  request_models.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+      token:
+        type: string
+    required:
+    - email
+    - new_password
+    - token
+    type: object
   request_models.LoginRequest:
     properties:
       email:
@@ -418,6 +432,32 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIResponse'
       summary: Register a new account
+      tags:
+      - Accounts
+  /accounts/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Resets the user's password using a valid OTP token
+      parameters:
+      - description: Password reset payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Reset password with OTP
       tags:
       - Accounts
   /accounts/verify-otp:
