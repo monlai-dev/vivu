@@ -96,12 +96,14 @@ func (j *JourneyController) GetDetailsInfoOfJourneyById(c *gin.Context) {
 // @Success 200 {object} utils.APIResponse
 // @Security BearerAuth
 // @Example {json} Request Body Example:
-// {
-//   "journey_id": "123e4567-e89b-12d3-a456-426614174000",
-//   "poi_id": "poi-001",
-//   "start_time": "2023-10-01T10:00:00Z",
-//   "end_time": "2023-10-01T18:00:00Z"
-// }
+//
+//	{
+//	  "journey_id": "123e4567-e89b-12d3-a456-426614174000",
+//	  "poi_id": "poi-001",
+//	  "start_time": "2023-10-01T10:00:00Z",
+//	  "end_time": "2023-10-01T18:00:00Z"
+//	}
+//
 // @Router /journeys/add-poi-to-journey [post]
 func (j *JourneyController) AddPoiToJourney(c *gin.Context) {
 
