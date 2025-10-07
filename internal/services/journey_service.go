@@ -58,7 +58,7 @@ func (j *JourneyService) GetListOfJourneyByUserId(
 	out := make([]response_models.JourneyResponse, 0, len(journeys))
 	for _, journey := range journeys {
 		startVN := utils.FromUnixSecondsVN(journey.StartDate) // expects seconds
-		endVN := utils.FromUnixSecondsVN(journey.EndDate)
+		endVN := utils.FromUnixSecondsVN(*journey.EndDate)
 
 		out = append(out, response_models.JourneyResponse{
 			ID:    journey.ID.String(),
