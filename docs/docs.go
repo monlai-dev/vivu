@@ -652,6 +652,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/provinces/find-by-name/{province_name}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch province details by its name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Provinces"
+                ],
+                "summary": "Find province by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Province Name",
+                        "name": "province_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response_models.ProvinceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/provinces/list-all": {
             "get": {
                 "security": [
@@ -995,6 +1038,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "activity_type": {
+                    "type": "string"
+                },
+                "end_time": {
                     "type": "string"
                 },
                 "id": {

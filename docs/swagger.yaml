@@ -168,6 +168,8 @@ definitions:
     properties:
       activity_type:
         type: string
+      end_time:
+        type: string
       id:
         type: string
       notes:
@@ -794,6 +796,33 @@ paths:
       summary: Start a travel quiz
       tags:
       - Prompt
+  /provinces/find-by-name/{province_name}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch province details by its name
+      parameters:
+      - description: Province Name
+        in: path
+        name: province_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response_models.ProvinceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Find province by name
+      tags:
+      - Provinces
   /provinces/list-all:
     get:
       consumes:

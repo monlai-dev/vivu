@@ -213,7 +213,8 @@ func RegisterRoutes(r *gin.Engine,
 	promptGroup.POST("/quiz/plan-only", promptController.PlanOnlyHandler)
 
 	provinceGroup := r.Group("/provinces", middleware.JWTAuthMiddleware())
-	provinceGroup.GET("/list-all", middleware.RoleMiddleware("admin"), provinceController.GetAllProvinces)
+	provinceGroup.GET("/list-all", provinceController.GetAllProvinces)
+	provinceGroup.GET("/find-by-name/:province_name", provinceController.FindProvincesByName)
 
 	journeyGroup := r.Group("/journeys", middleware.JWTAuthMiddleware())
 	journeyGroup.GET("/get-journey-by-userid", journeyController.GetJourneyByUserId)

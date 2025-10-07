@@ -55,3 +55,30 @@ func (p *ProvincesController) GetAllProvinces(c *gin.Context) {
 
 	utils.RespondSuccess(c, pois, "Provinces fetched successfully")
 }
+
+// FindProvincesByName godoc
+// @Summary Find province by name
+// @Description Fetch province details by its name
+// @Tags Provinces
+// @Accept json
+// @Produce json
+// @Param province_name path string true "Province Name"
+// @Success 200 {object} response_models.ProvinceResponse
+// @Failure 400 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /provinces/find-by-name/{province_name} [get]
+func (p *ProvincesController) FindProvincesByName(c *gin.Context) {
+	id := c.Param("province_name")
+	if id == "" {
+		utils.RespondError(c, http.StatusBadRequest, "Province ID is required")
+		return
+	}
+
+	province, err := p.provinceService.FindProvincesByName(id, c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, province, "Province fetched successfully")
+}
