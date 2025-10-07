@@ -74,7 +74,7 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 			ad := resp.JourneyActivityDetail{
 				ID:           a.ID,
 				Time:         formatTime(a.Time),
-				EndTime:      formatTime(*a.EndTime),
+				EndTime:      formatTimeIfNotNil(a.EndTime),
 				ActivityType: a.ActivityType,
 				Notes:        a.Notes,
 			}
@@ -100,4 +100,11 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 
 	out.TotalActivities = totalActivities
 	return out
+}
+
+func formatTimeIfNotNil(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return formatTime(*t)
 }
