@@ -11,7 +11,7 @@ type Journey struct {
 	AccountID   uuid.UUID // Change from UserID
 	Title       string
 	StartDate   int64
-	EndDate     int64
+	EndDate     *int64
 	IsShared    bool
 	IsCompleted bool
 
@@ -44,15 +44,15 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 		ID:          j.ID,
 		Title:       j.Title,
 		StartDate:   toRFC3339(j.StartDate),
-		EndDate:     toRFC3339(j.EndDate),
+		EndDate:     toRFC3339(*j.EndDate),
 		IsShared:    j.IsShared,
 		IsCompleted: j.IsCompleted,
 	}
 
 	// Duration (inclusive days). If you prefer exclusive, remove the +1 when >0.
-	if j.StartDate > 0 && j.EndDate >= j.StartDate {
+	if j.StartDate > 0 && *j.EndDate >= j.StartDate {
 		start := time.Unix(j.StartDate, 0).UTC().Truncate(24 * time.Hour)
-		end := time.Unix(j.EndDate, 0).UTC().Truncate(24 * time.Hour)
+		end := time.Unix(*j.EndDate, 0).UTC().Truncate(24 * time.Hour)
 		out.DurationDays = int(end.Sub(start).Hours()/24) + 1
 	}
 
