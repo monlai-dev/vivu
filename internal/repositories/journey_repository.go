@@ -219,7 +219,7 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 				AccountID:   createIn.AccountID,
 				Title:       createIn.Title,
 				StartDate:   startVN.Unix(), // store seconds
-				EndDate:     endUnix,        // store seconds or 0
+				EndDate:     &endUnix,       // store seconds or 0
 				IsShared:    createIn.IsShared,
 				IsCompleted: createIn.IsCompleted,
 			}
