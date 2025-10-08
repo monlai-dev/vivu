@@ -136,7 +136,7 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		result, err = p.journeyRepo.ReplaceMaterializedPlan(ctx, &uuid.Nil, plan, &repositories.CreateJourneyInput{
-			Title:     fmt.Sprintf("Plan for session %s", sessionID),
+			Title:     fmt.Sprintf("Trip to %s", plan.Destination),
 			AccountID: userId,
 			StartDate: startVN,
 		})

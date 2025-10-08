@@ -221,11 +221,12 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 
 			j = dbm.Journey{
 				AccountID:   createIn.AccountID,
-				Title:       plan.Destination,
+				Title:       createIn.Title,
 				StartDate:   startVN.Unix(), // store seconds
 				EndDate:     &endUnix,       // store seconds or 0
 				IsShared:    createIn.IsShared,
 				IsCompleted: createIn.IsCompleted,
+				Location:    plan.Destination,
 			}
 			if err := tx.Create(&j).Error; err != nil {
 				return err

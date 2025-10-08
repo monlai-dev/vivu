@@ -66,6 +66,7 @@ func (j *JourneyService) GetListOfJourneyByUserId(
 			// Prefer stable ISO strings for APIs
 			StartDate: utils.FormatRFC3339VN(startVN), // "" if zero
 			EndDate:   utils.FormatRFC3339VN(endVN),   // "" if zero
+			Location:  journey.Location,
 		})
 	}
 	return out, nil

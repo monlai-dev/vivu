@@ -14,6 +14,7 @@ type Journey struct {
 	EndDate     *int64
 	IsShared    bool
 	IsCompleted bool
+	Location    string
 
 	Account  Account      `gorm:"foreignKey:AccountID"`
 	Days     []JourneyDay `gorm:"foreignKey:JourneyID"`
