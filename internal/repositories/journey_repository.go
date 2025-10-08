@@ -213,11 +213,15 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 			if createIn.EndDate != nil {
 				endVN := createIn.EndDate.In(vnLoc)
 				endUnix = endVN.Unix()
+			} else if len(plan.Days) > 0 {
+				// Calculate end date based on the number of days in the plan
+				endVN := startVN.Add(time.Duration(len(plan.Days)-1) * 24 * time.Hour)
+				endUnix = endVN.Unix()
 			}
 
 			j = dbm.Journey{
 				AccountID:   createIn.AccountID,
-				Title:       createIn.Title,
+				Title:       plan.Destination,
 				StartDate:   startVN.Unix(), // store seconds
 				EndDate:     &endUnix,       // store seconds or 0
 				IsShared:    createIn.IsShared,
