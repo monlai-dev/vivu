@@ -14,6 +14,8 @@ var payOsCgf = services.PayOSConfig{
 	ApiKey:       os.Getenv("PAYOS_API_KEY"),
 	ChecksumKey:  os.Getenv("PAYOS_CHECKSUM_KEY"),
 	ProviderName: "payos",
+	CancelURL:    "http://localhost:3000/payment/cancel",
+	ReturnURL:    "http://localhost:3000/payment/success",
 }
 
 var Module = fx.Provide(
