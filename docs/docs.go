@@ -930,14 +930,10 @@ const docTemplate = `{
         "request_models.CreatePaymentRequest": {
             "type": "object",
             "required": [
-                "plan_code",
-                "user_id"
+                "plan_code"
             ],
             "properties": {
                 "plan_code": {
-                    "type": "string"
-                },
-                "user_id": {
                     "type": "string"
                 }
             }

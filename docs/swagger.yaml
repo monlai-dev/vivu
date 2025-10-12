@@ -17,11 +17,8 @@ definitions:
     properties:
       plan_code:
         type: string
-      user_id:
-        type: string
     required:
     - plan_code
-    - user_id
     type: object
   request_models.CreatePoiRequest:
     properties:
