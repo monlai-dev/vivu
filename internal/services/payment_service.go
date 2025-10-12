@@ -133,8 +133,8 @@ func (p *paymentService) CreateCheckoutForPlan(ctx context.Context, accountID uu
 func (p *paymentService) HandleWebhook(c *gin.Context) {
 
 	// 3) Parse minimal fields we need (adjust to actual payOS webhook schema)
-	if err := payos.Key(os.Getenv("CLIENT_ID"),
-		os.Getenv("API_KEY"),
+	if err := payos.Key(os.Getenv("PAYOS_CLIENT_ID"),
+		os.Getenv("PAYOS_API_KEY"),
 		os.Getenv("CHECK_SUM_KEY")); err != nil {
 		log.Fatalf("Error setting payos key: %v", err)
 	}
