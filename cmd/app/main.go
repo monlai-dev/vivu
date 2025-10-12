@@ -228,7 +228,7 @@ func RegisterRoutes(r *gin.Engine,
 	journeyGroup.POST("/add-poi-to-journey", journeyController.AddPoiToJourney)
 	journeyGroup.POST("/remove-poi-from-journey", journeyController.RemovePoiFromJourney)
 
-	paymentGroup := r.Group("/payments", middleware.JWTAuthMiddleware())
-	paymentGroup.POST("/create-checkout", paymentController.CreateCheckoutRequest)
+	paymentGroup := r.Group("/payments")
+	paymentGroup.POST("/create-checkout", middleware.JWTAuthMiddleware(), paymentController.CreateCheckoutRequest)
 	paymentGroup.POST("/webhook", paymentController.HandleWebhook)
 }
