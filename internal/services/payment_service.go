@@ -139,7 +139,7 @@ func (p *paymentService) HandleWebhook(c *gin.Context) {
 
 		log.Printf("key: %s", os.Getenv("PAYOS_CLIENT_ID"))
 		log.Printf("key: %s", os.Getenv("PAYOS_API_KEY"))
-		log.Printf("key: %s", os.Getenv("CHECK_SUM_KEY"))
+		log.Printf("key: %s", os.Getenv("PAYOS_CHECKSUM_KEY"))
 
 		log.Panicf("Error setting payos key: %v", err)
 
