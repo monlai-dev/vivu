@@ -48,6 +48,9 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          PAYOS_CLIENT_ID: ${{ secrets.PAYOS_CLIENT_ID }}
+          PAYOS_API_KEY: ${{ secrets.PAYOS_API_KEY }}
+          PAYOS_CHECKSUM_KEY: ${{ secrets.PAYOS_CHECKSUM_KEY }}
           PORT: 3636
         run: |
           ssh -o StrictHostKeyChecking=no "$EC2_HOST" "
@@ -94,7 +97,11 @@ jobs:
           POSTGRES_URL=${POSTGRES_URL}
           GEMINI_API_KEY=${GEMINI_API_KEY}
           MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
-            SMTP_PASSWORD=${SMTP_PASSWORD}
+          SMTP_PASSWORD=${SMTP_PASSWORD}
+          PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}
+          PAYOS_API_KEY=${PAYOS_API_KEY}
+          PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY}
+          
           PORT=${PORT}
           EOT
           

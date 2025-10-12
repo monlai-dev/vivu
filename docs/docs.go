@@ -388,6 +388,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/payments/create-checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a checkout request for a subscription plan",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Create a checkout request for a subscription plan",
+                "parameters": [
+                    {
+                        "description": "Create Payment Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.CreatePaymentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pois/create-poi": {
             "post": {
                 "description": "Create a new Point of Interest (POI)",
@@ -421,6 +460,45 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pois/delete-poi": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a Point of Interest (POI) by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Delete a POI",
+                "parameters": [
+                    {
+                        "description": "POI deletion payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.DeletePoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.APIResponse"
                         }
@@ -510,6 +588,45 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/pois/update-poi": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a Point of Interest (POI) by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Update a POI",
+                "parameters": [
+                    {
+                        "description": "POI update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.UpdatePoiRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.APIResponse"
                         }
@@ -810,6 +927,21 @@ const docTemplate = `{
                 }
             }
         },
+        "request_models.CreatePaymentRequest": {
+            "type": "object",
+            "required": [
+                "plan_code",
+                "user_id"
+            ],
+            "properties": {
+                "plan_code": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "request_models.CreatePoiRequest": {
             "type": "object",
             "properties": {
@@ -838,6 +970,17 @@ const docTemplate = `{
                     "$ref": "#/definitions/request_models.PoiDetails"
                 },
                 "province": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.DeletePoiRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
                     "type": "string"
                 }
             }
@@ -1022,6 +1165,44 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "request_models.UpdatePoiRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "contact_info": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "opening_hours": {
+                    "type": "string"
+                },
+                "poi_details": {
+                    "$ref": "#/definitions/request_models.PoiDetails"
+                },
+                "province": {
+                    "type": "string"
                 }
             }
         },

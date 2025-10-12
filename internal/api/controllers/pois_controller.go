@@ -113,3 +113,55 @@ func (p *POIsController) CreatePoi(c *gin.Context) {
 
 	utils.RespondSuccess(c, nil, "POI created successfully")
 }
+
+// DeletePoi godoc
+// @Summary Delete a POI
+// @Description Delete a Point of Interest (POI) by its ID
+// @Tags POIs
+// @Accept json
+// @Produce json
+// @Param request body request_models.DeletePoiRequest true "POI deletion payload"
+// @Success 200 {object} utils.APIResponse
+// @Router /pois/delete-poi [delete]
+// @Security BearerAuth
+func (p *POIsController) DeletePoi(c *gin.Context) {
+
+	var deleteRequest request_models.DeletePoiRequest
+	if err := c.ShouldBindJSON(&deleteRequest); err != nil {
+
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := p.poiService.DeletePoi(deleteRequest.ID, c.Request.Context()); err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, nil, "POI deleted successfully")
+}
+
+// UpdatePoi godoc
+// @Summary Update a POI
+// @Description Update a Point of Interest (POI) by its ID
+// @Tags POIs
+// @Accept json
+// @Produce json
+// @Param request body request_models.UpdatePoiRequest true "POI update payload"
+// @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /pois/update-poi [put]
+func (p *POIsController) UpdatePoi(c *gin.Context) {
+	var updateRequest request_models.UpdatePoiRequest
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := p.poiService.UpdatePoi(updateRequest, c.Request.Context()); err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, nil, "POI updated successfully")
+}

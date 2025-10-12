@@ -13,6 +13,16 @@ definitions:
     - journey_id
     - poi_id
     type: object
+  request_models.CreatePaymentRequest:
+    properties:
+      plan_code:
+        type: string
+      user_id:
+        type: string
+    required:
+    - plan_code
+    - user_id
+    type: object
   request_models.CreatePoiRequest:
     properties:
       address:
@@ -33,6 +43,13 @@ definitions:
         $ref: '#/definitions/request_models.PoiDetails'
       province:
         type: string
+    type: object
+  request_models.DeletePoiRequest:
+    properties:
+      id:
+        type: string
+    required:
+    - id
     type: object
   request_models.ForgotPasswordRequest:
     properties:
@@ -157,6 +174,31 @@ definitions:
     - display_name
     - email
     - password
+    type: object
+  request_models.UpdatePoiRequest:
+    properties:
+      address:
+        type: string
+      category:
+        type: string
+      contact_info:
+        type: string
+      id:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      opening_hours:
+        type: string
+      poi_details:
+        $ref: '#/definitions/request_models.PoiDetails'
+      province:
+        type: string
+    required:
+    - id
     type: object
   response_models.DistanceMatrix:
     additionalProperties:
@@ -626,6 +668,30 @@ paths:
       summary: Remove POI from journey
       tags:
       - Journey
+  /payments/create-checkout:
+    post:
+      consumes:
+      - application/json
+      description: Create a checkout request for a subscription plan
+      parameters:
+      - description: Create Payment Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.CreatePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a checkout request for a subscription plan
+      tags:
+      - Payments
   /pois/create-poi:
     post:
       consumes:
@@ -650,6 +716,30 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIResponse'
       summary: Create a new POI
+      tags:
+      - POIs
+  /pois/delete-poi:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a Point of Interest (POI) by its ID
+      parameters:
+      - description: POI deletion payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.DeletePoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a POI
       tags:
       - POIs
   /pois/pois-details/{id}:
@@ -710,6 +800,30 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIResponse'
       summary: Get POIs by Province
+      tags:
+      - POIs
+  /pois/update-poi:
+    put:
+      consumes:
+      - application/json
+      description: Update a Point of Interest (POI) by its ID
+      parameters:
+      - description: POI update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.UpdatePoiRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a POI
       tags:
       - POIs
   /prompt/quiz/answer:

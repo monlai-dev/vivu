@@ -15,3 +15,10 @@ type SubscriptionPlan struct {
 	IsActive        bool      `json:"is_active"`             // Whether the plan is active
 	Features        []string  `json:"features,omitempty"`    // List of features
 }
+
+type CreateCheckoutResponse struct {
+	OrderCode    int64  `json:"order_code"`
+	Amount       int64  `json:"amount"`
+	PaymentURL   string `json:"payment_url"`
+	ProviderName string `json:"provider"`
+}
