@@ -136,7 +136,7 @@ func (p *paymentService) HandleWebhook(c *gin.Context) {
 	if err := payos.Key(os.Getenv("PAYOS_CLIENT_ID"),
 		os.Getenv("PAYOS_API_KEY"),
 		os.Getenv("CHECK_SUM_KEY")); err != nil {
-		log.Fatalf("Error setting payos key: %v", err)
+		log.Panicf("Error setting payos key: %v", err)
 	}
 
 	rawBody, err := io.ReadAll(c.Request.Body)
