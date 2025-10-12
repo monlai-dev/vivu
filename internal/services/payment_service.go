@@ -135,7 +135,7 @@ func (p *paymentService) HandleWebhook(c *gin.Context) {
 	// 3) Parse minimal fields we need (adjust to actual payOS webhook schema)
 	if err := payos.Key(os.Getenv("PAYOS_CLIENT_ID"),
 		os.Getenv("PAYOS_API_KEY"),
-		os.Getenv("CHECK_SUM_KEY")); err != nil {
+		os.Getenv("PAYOS_CHECKSUM_KEY")); err != nil {
 
 		log.Printf("key: %s", os.Getenv("PAYOS_CLIENT_ID"))
 		log.Printf("key: %s", os.Getenv("PAYOS_API_KEY"))
