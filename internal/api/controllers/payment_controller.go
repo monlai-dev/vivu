@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 	"vivu/internal/models/request_models"
 	"vivu/internal/services"
@@ -36,7 +37,16 @@ func (p *PaymentController) CreateCheckoutRequest(c *gin.Context) {
 		return
 	}
 
-	checkoutURL, err := p.paymentService.CreateCheckoutForPlan(c.Request.Context(), request.UserId, request.PlanCode)
+	userid := c.GetString("user_id")
+
+	if userid == "" {
+		utils.RespondError(c, http.StatusBadRequest, "user_id is required")
+		return
+	}
+
+	userId, _ := uuid.Parse(userid)
+
+	checkoutURL, err := p.paymentService.CreateCheckoutForPlan(c.Request.Context(), userId, request.PlanCode)
 	if err != nil {
 		utils.HandleServiceError(c, err)
 		return
