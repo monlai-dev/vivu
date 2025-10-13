@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 	"vivu/internal/models/db_models"
@@ -37,6 +38,8 @@ func (a *AccountService) IsUserHaveSubscription(accountID string) (bool, error) 
 	if account == nil {
 		return false, utils.ErrAccountNotFound
 	}
+
+	fmt.Printf("Account details: %+v\n", account)
 
 	// Check if the account has active subscriptions
 	for _, sub := range account.Subs {
