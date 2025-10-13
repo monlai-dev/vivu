@@ -1,9 +1,7 @@
 package response_models
 
 import (
-	_ "encoding/json"
 	"github.com/google/uuid"
-	_ "vivu/internal/models/db_models"
 )
 
 type SubscriptionPlan struct {
