@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"time"
 	"vivu/internal/models/db_models"
 	"vivu/internal/models/response_models"
@@ -14,10 +15,47 @@ type JourneyServiceInterface interface {
 	GetDetailsInfoOfJourneyById(ctx context.Context, journeyId string) (*response_models.JourneyDetailResponse, error)
 	AddPoiToJourneyWithGivenStartAndEndDate(ctx context.Context, journeyId string, poiId string, startDate time.Time, endDate time.Time) error
 	RemovePoiFromJourney(ctx context.Context, journeyId string, poiId string) error
+	AddDayToJourney(ctx context.Context, journeyId string) (uuid.UUID, error)
+	UpdateSelectedPoiInActivity(ctx context.Context, activityId uuid.UUID, currentPoiId string, startTimen, endTime time.Time) error
 }
 
 type JourneyService struct {
 	journeyRepo repositories.JourneyRepository
+}
+
+func (j *JourneyService) UpdateSelectedPoiInActivity(ctx context.Context,
+	activityId uuid.UUID,
+	currentPoiId string,
+	startTimen, endTime time.Time) error {
+	if currentPoiId == "" {
+		return utils.ErrInvalidInput
+	}
+
+	// Call the repository method
+	err := j.journeyRepo.UpdateSelectedPoiInActivityWithGivenTime(ctx, activityId, currentPoiId, startTimen, endTime)
+	if err != nil {
+		return utils.ErrDatabaseError
+	}
+
+	return nil
+}
+
+func (j *JourneyService) AddDayToJourney(ctx context.Context, journeyId string) (uuid.UUID, error) {
+
+	journey, err := j.journeyRepo.GetDetailsOfJourneyById(ctx, journeyId)
+	if err != nil {
+		return uuid.Nil, utils.ErrDatabaseError
+	}
+	if journey == nil {
+		return uuid.Nil, utils.ErrJourneyNotFound
+	}
+
+	newId, err := j.journeyRepo.AddDayToJourneyWithDate(ctx, journeyId)
+	if err != nil {
+		return uuid.Nil, utils.ErrDatabaseError
+	}
+
+	return newId, nil
 }
 
 func (j *JourneyService) RemovePoiFromJourney(ctx context.Context, journeyId string, poiId string) error {

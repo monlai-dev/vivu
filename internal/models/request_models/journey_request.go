@@ -13,3 +13,14 @@ type RemovePoiFromJourneyRequest struct {
 	JourneyID string `json:"journey_id" binding:"required,uuid4"`
 	PoiID     string `json:"poi_id" binding:"required,uuid4"`
 }
+
+type UpdatePoiInActivityRequest struct {
+	ActivityID   string `json:"activity_id" binding:"required"`
+	CurrentPoiID string `json:"current_poi_id" binding:"required"`
+	StartTime    string `json:"start_time" binding:"required"`
+	EndTime      string `json:"end_time" binding:"required"`
+}
+
+type AddDayToJourneyRequest struct {
+	JourneyID string `json:"journey_id" binding:"required"`
+}

@@ -1,4 +1,11 @@
 definitions:
+  request_models.AddDayToJourneyRequest:
+    properties:
+      journey_id:
+        type: string
+    required:
+    - journey_id
+    type: object
   request_models.AddPoiToJourneyRequest:
     properties:
       end_time:
@@ -171,6 +178,22 @@ definitions:
     - display_name
     - email
     - password
+    type: object
+  request_models.UpdatePoiInActivityRequest:
+    properties:
+      activity_id:
+        type: string
+      current_poi_id:
+        type: string
+      end_time:
+        type: string
+      start_time:
+        type: string
+    required:
+    - activity_id
+    - current_poi_id
+    - end_time
+    - start_time
     type: object
   request_models.UpdatePoiRequest:
     properties:
@@ -551,6 +574,38 @@ paths:
       summary: Verify an OTP token
       tags:
       - Accounts
+  /journeys/add-day-to-journey:
+    post:
+      consumes:
+      - application/json
+      description: Add a new day to a specific journey
+      parameters:
+      - description: Journey ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.AddDayToJourneyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a day to a journey
+      tags:
+      - Journey
   /journeys/add-poi-to-journey:
     post:
       consumes:
@@ -665,6 +720,39 @@ paths:
       summary: Remove POI from journey
       tags:
       - Journey
+  /journeys/update-poi-in-activity:
+    post:
+      consumes:
+      - application/json
+      description: Update the selected POI in an activity with the given start and
+        end times
+      parameters:
+      - description: Activity ID, POI ID, Start Time, End Time
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.UpdatePoiInActivityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update selected POI in activity
+      tags:
+      - Journey
   /payments/create-checkout:
     post:
       consumes:
@@ -687,6 +775,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a checkout request for a subscription plan
+      tags:
+      - Payments
+  /payments/plans:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of available subscription plans
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Get list of available subscription plans
+      tags:
+      - Payments
+  /payments/subscription-details:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve subscription details for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get subscription details for the authenticated user
       tags:
       - Payments
   /pois/create-poi:

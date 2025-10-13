@@ -231,4 +231,6 @@ func RegisterRoutes(r *gin.Engine,
 	paymentGroup := r.Group("/payments")
 	paymentGroup.POST("/create-checkout", middleware.JWTAuthMiddleware(), paymentController.CreateCheckoutRequest)
 	paymentGroup.POST("/webhook", paymentController.HandleWebhook)
+	paymentGroup.GET("/plans", paymentController.GetListOfAvailablePlans)
+	paymentGroup.GET("/subscription-details", paymentController.GetSubscriptionDetails)
 }

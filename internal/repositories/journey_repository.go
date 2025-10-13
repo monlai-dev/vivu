@@ -4,6 +4,7 @@ package repositories
 import (
 	"context"
 	"errors"
+
 	"time"
 
 	"github.com/google/uuid"
@@ -23,10 +24,82 @@ type JourneyRepository interface {
 	RemovePoiFromJourneyWithId(ctx context.Context, journeyId string, poiId string) error
 	AddPoiToJourneyWithIdOnGivenDay(ctx context.Context, journeyId string, poiId string, day time.Time) error
 	AddPoiToJourneyWithStartEnd(ctx context.Context, journeyId string, poiId string, start time.Time, end *time.Time) error
+	AddDayToJourneyWithDate(ctx context.Context, journeyId string) (uuid.UUID, error)
+	UpdateSelectedPoiInActivityWithGivenTime(ctx context.Context, activityId uuid.UUID, currentPoiId string, startTime, endTime time.Time) error
+}
+
+func NewJourneyRepository(db *gorm.DB) JourneyRepository {
+	return &journeyRepository{db: db}
 }
 
 type journeyRepository struct {
 	db *gorm.DB
+}
+
+func (r *journeyRepository) UpdateSelectedPoiInActivityWithGivenTime(ctx context.Context, activityId uuid.UUID, currentPoiId string, startTimen, endTime time.Time) error {
+	poiUUID, err := uuid.Parse(currentPoiId)
+	if err != nil {
+		return err
+	}
+
+	// Validate that the activity exists and is associated with the correct JourneyDay for the given date
+	var activity dbm.JourneyActivity
+	err = r.db.WithContext(ctx).
+		Joins("JOIN journey_days ON journey_activities.journey_day_id = journey_days.id").
+		Where("journey_activities.id = ? AND journey_days.date = ?", activityId, startTimen.Truncate(24*time.Hour)).
+		First(&activity).Error
+	if err != nil {
+		return err
+	}
+
+	// Update the activity with the new POI and time
+	err = r.db.WithContext(ctx).
+		Model(&dbm.JourneyActivity{}).
+		Where("id = ?", activityId).
+		Updates(map[string]interface{}{
+			"selected_poi_id": poiUUID,
+			"time":            startTimen,
+			"end_time":        endTime,
+		}).Error
+
+	return err
+}
+
+func (r *journeyRepository) AddDayToJourneyWithDate(ctx context.Context, journeyId string) (uuid.UUID, error) {
+
+	var lastDate time.Time
+	err := r.db.WithContext(ctx).
+		Model(&dbm.JourneyDay{}).
+		Where("journey_id = ?", journeyId).
+		Select("COALESCE(MAX(date), ?)", time.Now().In(vnLoc)).
+		Scan(&lastDate).Error
+	if err != nil {
+		return uuid.Nil, err
+	}
+	normalizedDate := lastDate.Add(24 * time.Hour)
+
+	// Calculate the day number based on existing days
+	var maxDayNumber int
+	err = r.db.WithContext(ctx).
+		Model(&dbm.JourneyDay{}).
+		Where("journey_id = ?", journeyId).
+		Select("COALESCE(MAX(day_number), 0)").
+		Scan(&maxDayNumber).Error
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	newDay := dbm.JourneyDay{
+		JourneyID: uuid.MustParse(journeyId),
+		Date:      normalizedDate,
+		DayNumber: maxDayNumber + 1,
+	}
+
+	if err := r.db.WithContext(ctx).Create(&newDay).Error; err != nil {
+		return uuid.Nil, err
+	}
+
+	return newDay.ID, nil
 }
 
 func (r *journeyRepository) AddPoiToJourneyWithStartEnd(
@@ -171,10 +244,6 @@ func (r *journeyRepository) GetListOfJourneyByUserId(ctx context.Context, page i
 	}
 
 	return journeys, nil
-}
-
-func NewJourneyRepository(db *gorm.DB) JourneyRepository {
-	return &journeyRepository{db: db}
 }
 
 func (r *journeyRepository) ReplaceMaterializedPlan(

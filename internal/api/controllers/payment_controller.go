@@ -58,3 +58,49 @@ func (p *PaymentController) CreateCheckoutRequest(c *gin.Context) {
 func (p *PaymentController) HandleWebhook(c *gin.Context) {
 	p.paymentService.HandleWebhook(c)
 }
+
+// GetListOfAvailablePlans godoc
+// @Summary Get list of available subscription plans
+// @Description Retrieve a list of available subscription plans
+// @Tags Payments
+// @Accept json
+// @Produce json
+// @Success 200 {object} utils.APIResponse
+// @Router /payments/plans [get]
+func (p *PaymentController) GetListOfAvailablePlans(c *gin.Context) {
+	plans, err := p.paymentService.GetListOfPlans(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, plans, "List of available plans retrieved successfully")
+}
+
+// GetSubscriptionDetails godoc
+// @Summary Get subscription details for the authenticated user
+// @Description Retrieve subscription details for the authenticated user
+// @Tags Payments
+// @Accept json
+// @Produce json
+// @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /payments/subscription-details [get]
+func (p *PaymentController) GetSubscriptionDetails(c *gin.Context) {
+	userid := c.GetString("user_id")
+
+	if userid == "" {
+		utils.RespondError(c, http.StatusBadRequest, "user_id is required")
+		return
+	}
+
+	userId, _ := uuid.Parse(userid)
+
+	subscription, err := p.paymentService.GetStatusOfSubscription(c.Request.Context(), userId)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, subscription, "Subscription details retrieved successfully")
+}

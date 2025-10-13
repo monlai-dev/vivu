@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 	"strconv"
+	"time"
 	"vivu/internal/models/request_models"
 	"vivu/internal/services"
 	"vivu/pkg/utils"
@@ -146,4 +148,78 @@ func (j *JourneyController) RemovePoiFromJourney(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, nil, "POI removed from journey successfully")
+}
+
+// UpdateSelectedPoiInActivity godoc
+// @Summary Update selected POI in activity
+// @Description Update the selected POI in an activity with the given start and end times
+// @Tags Journey
+// @Accept json
+// @Produce json
+// @Param request body request_models.UpdatePoiInActivityRequest true "Activity ID, POI ID, Start Time, End Time"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 500 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /journeys/update-poi-in-activity [post]
+func (j *JourneyController) UpdateSelectedPoiInActivity(c *gin.Context) {
+	var req request_models.UpdatePoiInActivityRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.ActivityID == "" || req.CurrentPoiID == "" {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	startTime, err := time.Parse(time.RFC3339, req.StartTime)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid start time format")
+		return
+	}
+
+	endTime, err := time.Parse(time.RFC3339, req.EndTime)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid end time format")
+		return
+	}
+
+	activityID, err := uuid.Parse(req.ActivityID)
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid activity ID")
+		return
+	}
+
+	err = j.journeyService.UpdateSelectedPoiInActivity(c.Request.Context(), activityID, req.CurrentPoiID, startTime, endTime)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, nil, "POI updated successfully")
+}
+
+// AddDayToJourney godoc
+// @Summary Add a day to a journey
+// @Description Add a new day to a specific journey
+// @Tags Journey
+// @Accept json
+// @Produce json
+// @Param request body request_models.AddDayToJourneyRequest true "Journey ID"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 500 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /journeys/add-day-to-journey [post]
+func (j *JourneyController) AddDayToJourney(c *gin.Context) {
+	var req request_models.AddDayToJourneyRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.JourneyID == "" {
+		utils.RespondError(c, http.StatusBadRequest, "Journey ID is required")
+		return
+	}
+
+	newDayID, err := j.journeyService.AddDayToJourney(c.Request.Context(), req.JourneyID)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, gin.H{"new_day_id": newDayID}, "Day added to journey successfully")
 }

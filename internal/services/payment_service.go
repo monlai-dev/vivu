@@ -35,12 +35,75 @@ type PayOSConfig struct {
 type PaymentService interface {
 	CreateCheckoutForPlan(ctx context.Context, accountID uuid.UUID, planCode string) (*response_models.CreateCheckoutResponse, error)
 	HandleWebhook(c *gin.Context)
+	GetListOfPlans(ctx context.Context) ([]response_models.SubscriptionPlan, error)
+	GetStatusOfSubscription(ctx context.Context, accountID uuid.UUID) (*response_models.SubscriptionStatusResponse, error)
 }
 
 type paymentService struct {
 	db  *gorm.DB
 	cfg PayOSConfig
 	loc *time.Location
+}
+
+func (p *paymentService) GetStatusOfSubscription(ctx context.Context, accountID uuid.UUID) (*response_models.SubscriptionStatusResponse, error) {
+
+	var sub dbm.Subscription
+	err := p.db.WithContext(ctx).
+		Where("account_id = ? AND status IN ?", accountID,
+			[]dbm.SubscriptionStatus{dbm.SubStatusActive, dbm.SubStatusTrialing, dbm.SubStatusPastDue}).
+		Order("ends_at DESC").
+		First(&sub).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &response_models.SubscriptionStatusResponse{}, nil
+		}
+		return nil, err
+	}
+
+	var plan dbm.Plan
+	if err := p.db.WithContext(ctx).Where("id = ?", sub.PlanID).First(&plan).Error; err != nil {
+		return nil, fmt.Errorf("load plan for subscription: %w", err)
+	}
+
+	resp := &response_models.SubscriptionStatusResponse{
+		Status:    string(sub.Status),
+		PlanCode:  plan.Code,
+		StartsAt:  sub.StartsAt,
+		EndsAt:    sub.EndsAt,
+		AutoRenew: sub.AutoRenew,
+	}
+
+	return resp, nil
+}
+
+func (p *paymentService) GetListOfPlans(ctx context.Context) ([]response_models.SubscriptionPlan, error) {
+
+	var plans []dbm.Plan
+	if err := p.db.WithContext(ctx).
+		Where("is_active = TRUE").
+		Order("price_minor ASC").
+		Find(&plans).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]response_models.SubscriptionPlan, len(plans))
+	for i, plan := range plans {
+		result[i] = response_models.SubscriptionPlan{
+			ID:              plan.ID,
+			Code:            plan.Code,
+			Name:            plan.Name,
+			Description:     plan.Description,
+			BackgroundImage: plan.BackgroundImage,
+			Period:          string(plan.Period),
+			Price:           plan.PriceMinor,
+			Currency:        plan.Currency,
+			TrialDays:       plan.TrialDays,
+			IsActive:        plan.IsActive,
+			Features:        nil, // Map features if needed
+		}
+	}
+
+	return result, nil
 }
 
 func (p *paymentService) CreateCheckoutForPlan(ctx context.Context, accountID uuid.UUID, planCode string) (*response_models.CreateCheckoutResponse, error) {

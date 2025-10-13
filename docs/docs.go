@@ -209,6 +209,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/journeys/add-day-to-journey": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new day to a specific journey",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Journey"
+                ],
+                "summary": "Add a day to a journey",
+                "parameters": [
+                    {
+                        "description": "Journey ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.AddDayToJourneyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/journeys/add-poi-to-journey": {
             "post": {
                 "security": [
@@ -388,6 +439,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/journeys/update-poi-in-activity": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the selected POI in an activity with the given start and end times",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Journey"
+                ],
+                "summary": "Update selected POI in activity",
+                "parameters": [
+                    {
+                        "description": "Activity ID, POI ID, Start Time, End Time",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.UpdatePoiInActivityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/payments/create-checkout": {
             "post": {
                 "security": [
@@ -417,6 +519,57 @@ const docTemplate = `{
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/plans": {
+            "get": {
+                "description": "Retrieve a list of available subscription plans",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Get list of available subscription plans",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/subscription-details": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve subscription details for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Get subscription details for the authenticated user",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -906,6 +1059,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "request_models.AddDayToJourneyRequest": {
+            "type": "object",
+            "required": [
+                "journey_id"
+            ],
+            "properties": {
+                "journey_id": {
+                    "type": "string"
+                }
+            }
+        },
         "request_models.AddPoiToJourneyRequest": {
             "type": "object",
             "required": [
@@ -1161,6 +1325,29 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "request_models.UpdatePoiInActivityRequest": {
+            "type": "object",
+            "required": [
+                "activity_id",
+                "current_poi_id",
+                "end_time",
+                "start_time"
+            ],
+            "properties": {
+                "activity_id": {
+                    "type": "string"
+                },
+                "current_poi_id": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
                 }
             }
         },

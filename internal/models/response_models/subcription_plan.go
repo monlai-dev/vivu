@@ -1,6 +1,10 @@
 package response_models
 
-import "github.com/google/uuid"
+import (
+	_ "encoding/json"
+	"github.com/google/uuid"
+	_ "vivu/internal/models/db_models"
+)
 
 type SubscriptionPlan struct {
 	ID              uuid.UUID `json:"id"`                    // Unique identifier
@@ -21,4 +25,13 @@ type CreateCheckoutResponse struct {
 	Amount       int64  `json:"amount"`
 	PaymentURL   string `json:"payment_url"`
 	ProviderName string `json:"provider"`
+}
+
+type SubscriptionStatusResponse struct {
+	AccountID uuid.UUID `json:"account_id"`
+	PlanCode  string    `json:"plan_code"`
+	Status    string    `json:"status"`
+	StartsAt  int64     `json:"starts_at"`
+	EndsAt    int64     `json:"ends_at"`
+	AutoRenew bool      `json:"auto_renew"`
 }
