@@ -5,18 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/cmd/fx/payment_service_fx/init.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/api/controllers/payment_controller.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/models/request_models/payment_request.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/api/controllers/pois_controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/api/controllers/pois_controller.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/request_models/pois_request.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/pois_request.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/response_models/subcription_plan.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/response_models/subcription_plan.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/payment_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/payment_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/services/poi_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/poi_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/journey.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/journey.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/repositories/account_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/account_repository.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/account_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/account_service.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/prompt_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/prompt_service.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

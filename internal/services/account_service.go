@@ -17,6 +17,7 @@ type AccountServiceInterface interface {
 	ForgotPassword(email string) error
 	VerifyAndConsumeResetToken(resetRequest request_models.ForgotPasswordRequest) (string, error)
 	VerifyOtpToken(request request_models.RequestVerifyOtpToken) error
+	IsUserHaveSubscription(accountID string) (bool, error)
 }
 
 type AccountService struct {
@@ -25,6 +26,26 @@ type AccountService struct {
 	resetStore   mem.ResetTokenStore // inject this
 	resetTTL     time.Duration       // e.g., 1 * time.Hour
 	publicAppURL string
+}
+
+func (a *AccountService) IsUserHaveSubscription(accountID string) (bool, error) {
+
+	account, err := a.accountRepo.FindById(context.Background(), accountID)
+	if err != nil {
+		return false, utils.ErrDatabaseError
+	}
+	if account == nil {
+		return false, utils.ErrAccountNotFound
+	}
+
+	// Check if the account has active subscriptions
+	for _, sub := range account.Subs {
+		if sub.Status == db_models.SubStatusActive {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (a *AccountService) VerifyOtpToken(request request_models.RequestVerifyOtpToken) error {

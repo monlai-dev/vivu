@@ -59,7 +59,10 @@ func (a *accountRepository) InsertTx(account *db_models.Account, ctx context.Con
 
 func (a *accountRepository) FindById(ctx context.Context, id string) (*db_models.Account, error) {
 	var account db_models.Account
-	err := a.db.WithContext(ctx).First(&account, "id = ?", id).Error
+	err := a.db.WithContext(ctx).
+		First(&account, "id = ?", id).
+		Preload("Subscription").
+		Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

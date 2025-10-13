@@ -43,6 +43,18 @@ var vnLoc = func() *time.Location {
 	return loc
 }()
 
+type planModelProfile struct {
+	Destination  string   `json:"destination"`
+	DurationDays int      `json:"duration_days"`
+	BudgetRange  string   `json:"budget_range,omitempty"`
+	PartySize    int      `json:"party_size,omitempty"`
+	StartDate    string   `json:"start_date,omitempty"` // "YYYY-MM-DD" (VN)
+	EndDate      string   `json:"end_date,omitempty"`   // "YYYY-MM-DD" (VN)
+	TravelStyle  []string `json:"travel_style,omitempty"`
+	Interests    []string `json:"interests,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+}
+
 type PromptService struct {
 	poisService  POIServiceInterface
 	tagService   TagServiceInterface
@@ -193,7 +205,46 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) 
 	}
 
 	dayCount := profile.Duration
-	jsonPlan, err := p.aiService.GeneratePlanOnlyJSON(ctx, profile, list, dayCount)
+
+	var startStr, endStr string
+	if sd := strings.TrimSpace(session.Answers["start_date"]); sd != "" {
+		if dt, err := parseDateVN(sd); err == nil {
+			startStr = dt.Format("2006-01-02")
+		}
+	}
+	if ed := strings.TrimSpace(session.Answers["end_date"]); ed != "" {
+		if dt, err := parseDateVN(ed); err == nil {
+			endStr = dt.Format("2006-01-02")
+		}
+	}
+
+	party := 0
+	if paxStr := strings.TrimSpace(session.Answers["num_customers"]); paxStr != "" {
+		if pax, err := strconv.Atoi(paxStr); err == nil && pax > 0 {
+			party = pax
+		}
+	}
+
+	// Explicit tags from session (comma-separated). If you already put some in TravelStyle,
+	// that’s fine; we still pass them separately as `Tags` so the model can key on that signal.
+	var tags []string
+	if rawTags, ok := session.Answers["tags"]; ok {
+		tags = parseCSVTags(rawTags)
+	}
+
+	payload := planModelProfile{
+		Destination:  profile.Destination,
+		DurationDays: dayCount,
+		BudgetRange:  profile.BudgetRange,
+		PartySize:    party,
+		StartDate:    startStr,
+		EndDate:      endStr,
+		TravelStyle:  append([]string{}, profile.TravelStyle...), // copy
+		Interests:    append([]string{}, profile.Interests...),   // copy
+		Tags:         tags,
+	}
+
+	jsonPlan, err := p.aiService.GeneratePlanOnlyJSON(ctx, payload, list, dayCount)
 	if err != nil {
 		return nil, err
 	}
@@ -320,6 +371,23 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) 
 }
 
 // ---------- Utils ----------
+
+// parseCSVTags splits by comma, trims, and drops empties.
+func parseCSVTags(s string) []string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		t := strings.TrimSpace(p)
+		if t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
+}
 
 func BuildGoogleDirURL(originLat, originLng, destLat, destLng float64) string {
 	q := url.Values{}
@@ -565,6 +633,13 @@ func (p *PromptService) createTravelProfile(answers map[string]string) response_
 		if pax, err := strconv.Atoi(strings.TrimSpace(paxStr)); err == nil && pax > 0 {
 			// add a soft tag the models can read
 			profile.Interests = append(profile.Interests, fmt.Sprintf("party:%d", pax))
+		}
+	}
+
+	if tags, ok := answers["tags"]; ok && strings.TrimSpace(tags) != "" {
+		tagList := strings.Split(tags, ",")
+		for _, tag := range tagList {
+			profile.TravelStyle = append(profile.TravelStyle, strings.TrimSpace(tag))
 		}
 	}
 

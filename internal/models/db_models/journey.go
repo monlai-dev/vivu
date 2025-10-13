@@ -2,6 +2,7 @@ package db_models
 
 import (
 	"github.com/google/uuid"
+	"sort"
 	"time"
 	resp "vivu/internal/models/response_models"
 )
@@ -70,6 +71,10 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 			Date:       formatTime(d.Date),
 			Activities: make([]resp.JourneyActivityDetail, 0, len(d.Activities)),
 		}
+
+		sort.Slice(d.Activities, func(i, j int) bool {
+			return d.Activities[i].Time.Before(d.Activities[j].Time)
+		})
 
 		for _, a := range d.Activities {
 			ad := resp.JourneyActivityDetail{
