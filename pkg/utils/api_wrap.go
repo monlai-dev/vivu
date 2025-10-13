@@ -119,6 +119,14 @@ var errorHandlers = map[error]func(*gin.Context, string){
 			TraceID: traceID,
 		})
 	},
+	ErrUserDoNotHavePremium: func(c *gin.Context, traceID string) {
+		c.JSON(http.StatusBadRequest, APIResponse{
+			Status:  "error",
+			Code:    http.StatusForbidden,
+			Message: "Page must be greater than 0",
+			TraceID: traceID,
+		})
+	},
 }
 
 func RespondSuccess(c *gin.Context, data interface{}, message string) {

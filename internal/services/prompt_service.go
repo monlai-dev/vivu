@@ -31,7 +31,7 @@ type PromptServiceInterface interface {
 	ProcessQuizAnswer(ctx context.Context, request request_models.QuizRequest) (*response_models.QuizResponse, error)
 	GeneratePersonalizedPlan(ctx context.Context, sessionID string) (*response_models.QuizResultResponse, error)
 
-	GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error)
+	GeneratePlanOnly(ctx context.Context, sessionID, userId string) (*response_models.PlanOnly, error)
 	GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (uuid.UUID, error)
 }
 
@@ -56,15 +56,16 @@ type planModelProfile struct {
 }
 
 type PromptService struct {
-	poisService  POIServiceInterface
-	tagService   TagServiceInterface
-	aiService    utils.EmbeddingClientInterface
-	embededRepo  repositories.IPoiEmbededRepository
-	poisRepo     repositories.POIRepository
-	quizSessions map[string]*QuizSession
-	sessionMutex sync.RWMutex
-	matrixSvc    DistanceMatrixService
-	journeyRepo  repositories.JourneyRepository
+	poisService    POIServiceInterface
+	tagService     TagServiceInterface
+	aiService      utils.EmbeddingClientInterface
+	embededRepo    repositories.IPoiEmbededRepository
+	poisRepo       repositories.POIRepository
+	quizSessions   map[string]*QuizSession
+	sessionMutex   sync.RWMutex
+	matrixSvc      DistanceMatrixService
+	journeyRepo    repositories.JourneyRepository
+	accountSerivce AccountServiceInterface
 }
 
 func NewPromptService(
@@ -75,15 +76,17 @@ func NewPromptService(
 	poisRepo repositories.POIRepository,
 	matrixSvc DistanceMatrixService,
 	journeyRepo repositories.JourneyRepository,
+	accountService AccountServiceInterface,
 ) PromptServiceInterface {
 	return &PromptService{
-		poisService: poisService,
-		tagService:  tagService,
-		aiService:   aiService,
-		embededRepo: embededRepo,
-		poisRepo:    poisRepo,
-		matrixSvc:   matrixSvc,
-		journeyRepo: journeyRepo,
+		poisService:    poisService,
+		tagService:     tagService,
+		aiService:      aiService,
+		embededRepo:    embededRepo,
+		poisRepo:       poisRepo,
+		matrixSvc:      matrixSvc,
+		journeyRepo:    journeyRepo,
+		accountSerivce: accountService,
 	}
 }
 
@@ -99,7 +102,7 @@ type QuizSession struct {
 // ---------- Plan generate & save ----------
 
 func (p *PromptService) GeneratePlanAndSave(ctx context.Context, sessionID string, userId uuid.UUID) (uuid.UUID, error) {
-	plan, err := p.GeneratePlanOnly(ctx, sessionID)
+	plan, err := p.GeneratePlanOnly(ctx, sessionID, userId.String())
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -173,7 +176,7 @@ func (p *PromptService) savePlanAsyncWithRetry(sessionID string, userId uuid.UUI
 	return uuid.Nil
 }
 
-func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) (*response_models.PlanOnly, error) {
+func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID, userId string) (*response_models.PlanOnly, error) {
 	p.sessionMutex.RLock()
 	session, ok := p.quizSessions[sessionID]
 	p.sessionMutex.RUnlock()
@@ -189,6 +192,16 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID string) 
 	if profile.Duration < 1 {
 		profile.Duration = 1
 	}
+
+	userHaveSubcriptions, err := p.accountSerivce.IsUserHaveSubscription(userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check user subscription: %w", err)
+	}
+
+	if profile.Duration > 3 && userHaveSubcriptions == false {
+		return nil, fmt.Errorf("free users can only create up to 3-day itineraries. Please subscribe for longer trips")
+	}
+
 	pois, err := p.findPersonalizedPOIs(ctx, profile)
 	if err != nil || len(pois) == 0 {
 		return nil, fmt.Errorf("no relevant POIs")

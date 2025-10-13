@@ -20,4 +20,5 @@ var (
 	RecordNotFound            = errors.New("record not found")
 	ErrThirdService           = errors.New("third service error")
 	ErrInvalidToken           = errors.New("invalid token")
+	ErrUserDoNotHavePremium   = errors.New("user do not have premium")
 )

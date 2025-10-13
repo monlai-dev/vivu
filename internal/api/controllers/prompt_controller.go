@@ -121,6 +121,7 @@ func (p *PromptController) PlanOnlyHandler(c *gin.Context) {
 
 	plan, err := p.promptService.GeneratePlanAndSave(c.Request.Context(), req.SessionID, userUUID)
 	if err != nil {
+		err = utils.ErrUserDoNotHavePremium
 		utils.HandleServiceError(c, err)
 		return
 	}
