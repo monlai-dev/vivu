@@ -195,8 +195,11 @@ func (p *PromptService) GeneratePlanOnly(ctx context.Context, sessionID, userId 
 
 	userHaveSubcriptions, err := p.accountSerivce.IsUserHaveSubscription(userId)
 	if err != nil {
+
 		return nil, fmt.Errorf("failed to check user subscription: %w", err)
 	}
+
+	fmt.Printf("userwithid %s have sub: %v", userId, userHaveSubcriptions)
 
 	if profile.Duration > 3 && userHaveSubcriptions == false {
 		return nil, fmt.Errorf("free users can only create up to 3-day itineraries. Please subscribe for longer trips")
