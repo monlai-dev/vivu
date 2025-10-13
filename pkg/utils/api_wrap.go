@@ -123,7 +123,7 @@ var errorHandlers = map[error]func(*gin.Context, string){
 		c.JSON(http.StatusBadRequest, APIResponse{
 			Status:  "error",
 			Code:    http.StatusForbidden,
-			Message: "Page must be greater than 0",
+			Message: "User do not have premium access to generate plan more than 3 days",
 			TraceID: traceID,
 		})
 	},
