@@ -61,7 +61,7 @@ func (a *accountRepository) FindById(ctx context.Context, id string) (*db_models
 	var account db_models.Account
 	err := a.db.WithContext(ctx).
 		First(&account, "id = ?", id).
-		Preload("Subscription").
+		Preload("Subs").
 		Error
 
 	if err != nil {
