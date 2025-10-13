@@ -232,5 +232,5 @@ func RegisterRoutes(r *gin.Engine,
 	paymentGroup.POST("/create-checkout", middleware.JWTAuthMiddleware(), paymentController.CreateCheckoutRequest)
 	paymentGroup.POST("/webhook", paymentController.HandleWebhook)
 	paymentGroup.GET("/plans", paymentController.GetListOfAvailablePlans)
-	paymentGroup.GET("/subscription-details", paymentController.GetSubscriptionDetails)
+	paymentGroup.GET("/subscription-details", middleware.JWTAuthMiddleware(), paymentController.GetSubscriptionDetails)
 }
