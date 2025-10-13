@@ -227,6 +227,7 @@ func RegisterRoutes(r *gin.Engine,
 	journeyGroup.GET("/get-details-info-of-journey-by-id/:journeyId", journeyController.GetDetailsInfoOfJourneyById)
 	journeyGroup.POST("/add-poi-to-journey", journeyController.AddPoiToJourney)
 	journeyGroup.POST("/remove-poi-from-journey", journeyController.RemovePoiFromJourney)
+	journeyGroup.POST("/add-day-to-journey", journeyController.AddDayToJourney)
 
 	paymentGroup := r.Group("/payments")
 	paymentGroup.POST("/create-checkout", middleware.JWTAuthMiddleware(), paymentController.CreateCheckoutRequest)
