@@ -7,13 +7,14 @@ import (
 	"time"
 	"vivu/internal/models/db_models"
 	"vivu/internal/models/request_models"
+	"vivu/internal/models/response_models"
 	"vivu/internal/repositories"
 	mem "vivu/pkg/memcache"
 	"vivu/pkg/utils"
 )
 
 type AccountServiceInterface interface {
-	Login(request request_models.LoginRequest, ctx context.Context) (string, error)
+	Login(request request_models.LoginRequest, ctx context.Context) (response_models.AccountLoginResponse, error)
 	CreateAccount(request request_models.SignUpRequest) error
 	ForgotPassword(email string) error
 	VerifyAndConsumeResetToken(resetRequest request_models.ForgotPasswordRequest) (string, error)
@@ -74,36 +75,41 @@ func NewAccountService(accountRepo repositories.AccountRepository, mailService I
 	}
 }
 
-func (a *AccountService) Login(request request_models.LoginRequest, ctx context.Context) (string, error) {
+func (a *AccountService) Login(request request_models.LoginRequest, ctx context.Context) (response_models.AccountLoginResponse, error) {
 
 	startTime := time.Now()
 
 	account, err := a.accountRepo.FindByEmail(ctx, request.Email)
 	if err != nil {
-		return "", utils.ErrDatabaseError
+		return response_models.AccountLoginResponse{}, utils.ErrDatabaseError
 	}
 
 	log.Printf("Login process took %s", time.Since(startTime))
 
 	if account == nil {
-		return "", utils.ErrAccountNotFound
+		return response_models.AccountLoginResponse{}, utils.ErrAccountNotFound
 	}
 
 	err = utils.ComparePasswords(account.PasswordHash, request.Password)
 	if err != nil {
-		return "", utils.ErrInvalidCredentials
+		return response_models.AccountLoginResponse{}, utils.ErrInvalidCredentials
 	}
-
-	log.Printf("Password verification took %s", time.Since(startTime))
 
 	token, err := utils.CreateToken(account.ID, account.Role)
 	if err != nil {
-		return "", utils.ErrInvalidCredentials
+		return response_models.AccountLoginResponse{}, utils.ErrInvalidCredentials
 	}
 
-	log.Printf("Token generation took %s", time.Since(startTime))
+	isUserHavePremium, err := a.IsUserHaveSubscription(account.ID.String())
 
-	return token, nil
+	if err != nil {
+		return response_models.AccountLoginResponse{}, utils.ErrDatabaseError
+	}
+
+	return response_models.AccountLoginResponse{
+		Token:             token,
+		IsUserHavePremium: isUserHavePremium,
+	}, nil
 }
 
 func (a *AccountService) CreateAccount(request request_models.SignUpRequest) error {

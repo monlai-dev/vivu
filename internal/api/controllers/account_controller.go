@@ -69,7 +69,9 @@ func (a *AccountController) Login(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, gin.H{"token": token}, "Login successful")
+	utils.RespondSuccess(c,
+		gin.H{"token": token.Token, "isUserHavePremium": token.IsUserHavePremium},
+		"Login successful")
 }
 
 // ForgotPassword handles the forgot password functionality.
