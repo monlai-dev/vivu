@@ -17,10 +17,22 @@ type POIServiceInterface interface {
 	CreatePois(pois request_models.CreatePoiRequest, ctx context.Context) error
 	UpdatePoi(pois request_models.UpdatePoiRequest, ctx context.Context) error
 	DeletePoi(id uuid.UUID, ctx context.Context) error
+	ListPois(ctx context.Context, page, pageSize int) ([]db_models.POI, error)
 }
 
 type PoiService struct {
 	poiRepository repositories.POIRepository
+}
+
+func (p *PoiService) ListPois(ctx context.Context, page, pageSize int) ([]db_models.POI, error) {
+
+	pois, err := p.poiRepository.List(ctx, page, pageSize)
+	if err != nil {
+		log.Printf("Error listing POIs: %v", err)
+		return nil, utils.ErrDatabaseError
+	}
+
+	return pois, nil
 }
 
 func (p *PoiService) DeletePoi(id uuid.UUID, ctx context.Context) error {

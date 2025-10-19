@@ -1,4 +1,11 @@
 definitions:
+  controllers.CreateProvinceRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
   request_models.AddDayToJourneyRequest:
     properties:
       journey_id:
@@ -574,6 +581,58 @@ paths:
       summary: Verify an OTP token
       tags:
       - Accounts
+  /dashboard/stats:
+    get:
+      consumes:
+      - application/json
+      description: Fetch KPI blocks, revenue/new users/subscriptions series, plan
+        mix, top destinations, and recent payments
+      parameters:
+      - description: RFC3339 start (e.g. 2025-10-01T00:00:00Z)
+        in: query
+        name: start
+        type: string
+      - description: RFC3339 end   (e.g. 2025-10-19T23:59:59Z)
+        in: query
+        name: end
+        type: string
+      - description: Relative lookback in days (mutually exclusive with start/end).
+          Default 30
+        in: query
+        name: last_days
+        type: integer
+      - description: 'Bucket size: day | week | month (default: day)'
+        in: query
+        name: interval
+        type: string
+      - description: 'IANA timezone for bucketing (default: Asia/Ho_Chi_Minh)'
+        in: query
+        name: tz
+        type: string
+      - description: 'ISO 4217 currency code for labeling (default: VND)'
+        in: query
+        name: currency
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard report
+      tags:
+      - Dashboard
   /journeys/add-day-to-journey:
     post:
       consumes:
@@ -1027,6 +1086,30 @@ paths:
       summary: Start a travel quiz
       tags:
       - Prompt
+  /provinces/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new province with the provided name
+      parameters:
+      - description: Province creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CreateProvinceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new province
+      tags:
+      - Provinces
   /provinces/find-by-name/{province_name}:
     get:
       consumes:

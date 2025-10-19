@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"vivu/internal/models/db_models"
 	"vivu/internal/models/response_models"
 	"vivu/internal/repositories"
 	"vivu/pkg/utils"
@@ -10,10 +11,24 @@ import (
 type ProvinceServiceInterface interface {
 	GetAllTags(page int, pageSize int, ctx context.Context) ([]response_models.ProvinceResponse, error)
 	FindProvincesByName(names string, ctx context.Context) ([]response_models.ProvinceResponse, error)
+	CreateProvince(name string, ctx context.Context) error
 }
 
 type ProvinceService struct {
 	provinceRepository repositories.ProvinceRepository
+}
+
+func (p *ProvinceService) CreateProvince(name string, ctx context.Context) error {
+	province := &db_models.Province{
+		Name: name,
+	}
+
+	_, err := p.provinceRepository.InsertTx(province, ctx)
+	if err != nil {
+		return utils.ErrDatabaseError
+	}
+
+	return nil
 }
 
 func (p *ProvinceService) FindProvincesByName(names string, ctx context.Context) ([]response_models.ProvinceResponse, error) {

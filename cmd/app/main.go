@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"vivu/cmd/fx/account_fx"
 	"vivu/cmd/fx/controllers_fx"
+	"vivu/cmd/fx/dashboard"
 	"vivu/cmd/fx/db_fx"
 	"vivu/cmd/fx/distance_matrix_fx"
 	"vivu/cmd/fx/journey_fx"
@@ -88,6 +89,7 @@ func main() {
 		mail_fx.Module,
 		memcache_fx.Module,
 		payment_service_fx.Module,
+		dashboard.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -130,7 +132,8 @@ func ProvideRouter(
 	provinceController *controllers.ProvincesController,
 	accountController *controllers.AccountController,
 	journeyController *controllers.JourneyController,
-	paymentController *controllers.PaymentController) *gin.Engine {
+	paymentController *controllers.PaymentController,
+	dashboardController *controllers.DashboardController) *gin.Engine {
 
 	r := gin.Default()
 	r.Use(gin.Logger())
@@ -138,7 +141,7 @@ func ProvideRouter(
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.TraceIDMiddleware())
 
-	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController, journeyController, paymentController)
+	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController, journeyController, paymentController, dashboardController)
 
 	return r
 }
@@ -193,7 +196,8 @@ func RegisterRoutes(r *gin.Engine,
 	provinceController *controllers.ProvincesController,
 	accountController *controllers.AccountController,
 	journeyController *controllers.JourneyController,
-	paymentController *controllers.PaymentController) {
+	paymentController *controllers.PaymentController,
+	dashboardController *controllers.DashboardController) {
 
 	accountGroup := r.Group("/accounts")
 	accountGroup.POST("/register", accountController.Register)
@@ -208,6 +212,7 @@ func RegisterRoutes(r *gin.Engine,
 	poisgroup.POST("/create-poi", poisController.CreatePoi)
 	poisgroup.DELETE("/delete-poi/", poisController.DeletePoi)
 	poisgroup.PUT("/update-poi/", poisController.UpdatePoi)
+	poisgroup.GET("/list-pois", poisController.ListPois)
 
 	tagsGroup := r.Group("/tags")
 	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)
@@ -221,6 +226,7 @@ func RegisterRoutes(r *gin.Engine,
 	provinceGroup := r.Group("/provinces", middleware.JWTAuthMiddleware())
 	provinceGroup.GET("/list-all", provinceController.GetAllProvinces)
 	provinceGroup.GET("/find-by-name/:province_name", provinceController.FindProvincesByName)
+	provinceGroup.POST("/create", provinceController.CreateProvinceHandler)
 
 	journeyGroup := r.Group("/journeys", middleware.JWTAuthMiddleware())
 	journeyGroup.GET("/get-journey-by-userid", journeyController.GetJourneyByUserId)
@@ -234,4 +240,7 @@ func RegisterRoutes(r *gin.Engine,
 	paymentGroup.POST("/webhook", paymentController.HandleWebhook)
 	paymentGroup.GET("/plans", paymentController.GetListOfAvailablePlans)
 	paymentGroup.GET("/subscription-details", middleware.JWTAuthMiddleware(), paymentController.GetSubscriptionDetails)
+
+	dashboardGroup := r.Group("/dashboard", middleware.JWTAuthMiddleware())
+	dashboardGroup.GET("/stats", dashboardController.GetDashboard)
 }

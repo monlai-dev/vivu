@@ -82,3 +82,37 @@ func (p *ProvincesController) FindProvincesByName(c *gin.Context) {
 
 	utils.RespondSuccess(c, province, "Province fetched successfully")
 }
+
+type CreateProvinceRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+// CreateProvinceHandler godoc
+// @Summary Create a new province
+// @Description Create a new province with the provided name
+// @Tags Provinces
+// @Accept json
+// @Produce json
+// @Param request body CreateProvinceRequest true "Province creation request"
+// @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /provinces/create [post]
+func (p *ProvincesController) CreateProvinceHandler(c *gin.Context) {
+	var req CreateProvinceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	err := p.provinceService.CreateProvince(req.Name, ctx)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, gin.H{
+		"name": req.Name,
+	}, "Province created successfully")
+}
