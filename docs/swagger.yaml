@@ -1,3 +1,4 @@
+basePath: /api
 definitions:
   controllers.CreateProvinceRequest:
     properties:
@@ -452,8 +453,12 @@ definitions:
       trace_id:
         type: string
     type: object
+host: api.vivu-travel.site
 info:
   contact: {}
+  description: This is the API documentation for Vivu Travel Platform
+  title: Vivu Travel API
+  version: "1.0"
 paths:
   /accounts/forgot-password:
     post:
@@ -1197,6 +1202,8 @@ paths:
       summary: List all tags
       tags:
       - Tags
+schemes:
+- https
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token

@@ -69,6 +69,12 @@ func loadDotEnv() error {
 	return fmt.Errorf(".env not found from %q upward", wd)
 }
 
+// @title Vivu Travel API
+// @version 1.0
+// @description This is the API documentation for Vivu Travel Platform
+// @host api.vivu-travel.site
+// @BasePath /api
+// @schemes https
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization

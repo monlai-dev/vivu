@@ -1870,12 +1870,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "1.0",
+	Host:             "api.vivu-travel.site",
+	BasePath:         "/api",
+	Schemes:          []string{"https"},
+	Title:            "Vivu Travel API",
+	Description:      "This is the API documentation for Vivu Travel Platform",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
