@@ -15,7 +15,7 @@ var payOsCgf = services.PayOSConfig{
 	ChecksumKey:  os.Getenv("PAYOS_CHECKSUM_KEY"),
 	ProviderName: "payos",
 	CancelURL:    "http://localhost:3000/payment/cancel",
-	ReturnURL:    "http://localhost:3000/payment/success",
+	ReturnURL:    "vivuapp://payment/success?orderId=123",
 }
 
 var Module = fx.Provide(
