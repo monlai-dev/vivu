@@ -7,12 +7,42 @@ definitions:
     required:
     - name
     type: object
+  db_models.Feedback:
+    properties:
+      comment:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      rating:
+        description: Rating between 1 and 5
+        type: integer
+      updatedAt:
+        type: string
+      userID:
+        description: Reference to the user providing feedback
+        type: string
+    type: object
   request_models.AddDayToJourneyRequest:
     properties:
       journey_id:
         type: string
     required:
     - journey_id
+    type: object
+  request_models.AddFeedbackRequest:
+    properties:
+      comment:
+        type: string
+      rating:
+        type: integer
+      user_id:
+        type: string
+    required:
+    - comment
+    - rating
+    - user_id
     type: object
   request_models.AddPoiToJourneyRequest:
     properties:
@@ -638,6 +668,58 @@ paths:
       summary: Get dashboard report
       tags:
       - Dashboard
+  /feedback/add:
+    post:
+      consumes:
+      - application/json
+      description: Add a comment and rating for the app
+      parameters:
+      - description: Feedback payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.AddFeedbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Add feedback
+      tags:
+      - Feedback
+  /feedback/list:
+    get:
+      description: Get a paginated list of feedback
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db_models.Feedback'
+            type: array
+      summary: List feedback
+      tags:
+      - Feedback
   /journeys/add-day-to-journey:
     post:
       consumes:

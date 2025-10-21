@@ -16,6 +16,7 @@ import (
 	"vivu/cmd/fx/dashboard"
 	"vivu/cmd/fx/db_fx"
 	"vivu/cmd/fx/distance_matrix_fx"
+	"vivu/cmd/fx/feedback_fx"
 	"vivu/cmd/fx/journey_fx"
 	"vivu/cmd/fx/mail_fx"
 	"vivu/cmd/fx/memcache_fx"
@@ -96,6 +97,7 @@ func main() {
 		memcache_fx.Module,
 		payment_service_fx.Module,
 		dashboard.Module,
+		feedback_fx.Module,
 
 		fx.Invoke(StartServer),
 		fx.Provide(ProvideRouter),
@@ -139,7 +141,8 @@ func ProvideRouter(
 	accountController *controllers.AccountController,
 	journeyController *controllers.JourneyController,
 	paymentController *controllers.PaymentController,
-	dashboardController *controllers.DashboardController) *gin.Engine {
+	dashboardController *controllers.DashboardController,
+	feedbackController *controllers.FeedbackController) *gin.Engine {
 
 	r := gin.Default()
 	r.Use(gin.Logger())
@@ -147,7 +150,7 @@ func ProvideRouter(
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.TraceIDMiddleware())
 
-	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController, journeyController, paymentController, dashboardController)
+	RegisterRoutes(r, poisController, tagsController, promptController, provinceController, accountController, journeyController, paymentController, dashboardController, feedbackController)
 
 	return r
 }
@@ -202,7 +205,8 @@ func MigrateDB() {
 		db_models.JourneyActivity{},
 		db_models.Subscription{},
 		db_models.Transaction{},
-		db_models.Plan{})
+		db_models.Plan{},
+		db_models.Feedback{})
 
 }
 
@@ -214,7 +218,8 @@ func RegisterRoutes(r *gin.Engine,
 	accountController *controllers.AccountController,
 	journeyController *controllers.JourneyController,
 	paymentController *controllers.PaymentController,
-	dashboardController *controllers.DashboardController) {
+	dashboardController *controllers.DashboardController,
+	feedbackController *controllers.FeedbackController) {
 
 	accountGroup := r.Group("/accounts")
 	accountGroup.POST("/register", accountController.Register)
@@ -260,4 +265,9 @@ func RegisterRoutes(r *gin.Engine,
 
 	dashboardGroup := r.Group("/dashboard", middleware.JWTAuthMiddleware())
 	dashboardGroup.GET("/stats", dashboardController.GetDashboard)
+
+	feedbackGroup := r.Group("/feedback")
+	feedbackGroup.POST("/add", feedbackController.AddFeedback)
+	feedbackGroup.GET("/list", feedbackController.ListFeedback)
+
 }

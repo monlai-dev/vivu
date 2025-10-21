@@ -284,6 +284,84 @@
                 }
             }
         },
+        "/feedback/add": {
+            "post": {
+                "description": "Add a comment and rating for the app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Feedback"
+                ],
+                "summary": "Add feedback",
+                "parameters": [
+                    {
+                        "description": "Feedback payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_models.AddFeedbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/feedback/list": {
+            "get": {
+                "description": "Get a paginated list of feedback",
+                "tags": [
+                    "Feedback"
+                ],
+                "summary": "List feedback",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/db_models.Feedback"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/journeys/add-day-to-journey": {
             "post": {
                 "security": [
@@ -1222,6 +1300,31 @@
                 }
             }
         },
+        "db_models.Feedback": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "rating": {
+                    "description": "Rating between 1 and 5",
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userID": {
+                    "description": "Reference to the user providing feedback",
+                    "type": "string"
+                }
+            }
+        },
         "request_models.AddDayToJourneyRequest": {
             "type": "object",
             "required": [
@@ -1229,6 +1332,25 @@
             ],
             "properties": {
                 "journey_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_models.AddFeedbackRequest": {
+            "type": "object",
+            "required": [
+                "comment",
+                "rating",
+                "user_id"
+            ],
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }

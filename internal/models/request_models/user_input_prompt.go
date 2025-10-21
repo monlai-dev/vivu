@@ -20,3 +20,9 @@ type POISummary struct {
 	Category string
 	Description string
 }
+
+type AddFeedbackRequest struct {
+	UserID  string `json:"user_id" binding:"required"`
+	Comment string `json:"comment" binding:"required"`
+	Rating  int    `json:"rating" binding:"required"`
+}
