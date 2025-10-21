@@ -112,6 +112,7 @@ func (p *PaymentController) GetSubscriptionDetails(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
 // @Router /payments/transaction-history [get]
 func (p *PaymentController) GetAllTransactionHistory(c *gin.Context) {
 
