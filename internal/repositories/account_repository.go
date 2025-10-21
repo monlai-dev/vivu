@@ -15,10 +15,21 @@ type AccountRepository interface {
 	FindByEmail(ctx context.Context, email string) (*db_models.Account, error)
 	UpdateAccount(account *db_models.Account, ctx context.Context) error
 	UpdatePasswordByEmail(ctx context.Context, email, newPasswordHash string) error
+	GetAllAccounts(ctx context.Context) ([]db_models.Account, error)
 }
 
 type accountRepository struct {
 	db *gorm.DB
+}
+
+func (a *accountRepository) GetAllAccounts(ctx context.Context) ([]db_models.Account, error) {
+
+	var accounts []db_models.Account
+	err := a.db.WithContext(ctx).Find(&accounts).Error
+	if err != nil {
+		return nil, err
+	}
+	return accounts, nil
 }
 
 func (a *accountRepository) UpdatePasswordByEmail(ctx context.Context, email, newPasswordHash string) error {

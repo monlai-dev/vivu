@@ -104,3 +104,22 @@ func (p *PaymentController) GetSubscriptionDetails(c *gin.Context) {
 
 	utils.RespondSuccess(c, subscription, "Subscription details retrieved successfully")
 }
+
+// GetAllTransactionHistory godoc
+// @Summary Get all transaction history
+// @Description Retrieve all transaction history
+// @Tags Payments
+// @Accept json
+// @Produce json
+// @Success 200 {object} utils.APIResponse
+// @Router /payments/transaction-history [get]
+func (p *PaymentController) GetAllTransactionHistory(c *gin.Context) {
+
+	data, err := p.paymentService.GetAllTransactions(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, data, "Transaction history retrieved successfully")
+}

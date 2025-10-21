@@ -149,3 +149,23 @@ func (a *AccountController) ResetPasswordWithOtp(c *gin.Context) {
 
 	utils.RespondSuccess(c, nil, "Password has been reset successfully")
 }
+
+// GetAllAccounts godoc
+// @Summary Get all accounts
+// @Description Fetch a list of all user accounts
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /accounts/all [get]
+func (a *AccountController) GetAllAccounts(c *gin.Context) {
+
+	accounts, err := a.accountService.GetAllAccounts(context.Background())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, accounts, "Accounts fetched successfully")
+}

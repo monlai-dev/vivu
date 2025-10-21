@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"vivu/internal/models/response_models"
 
 	"github.com/google/uuid"
 	"vivu/internal/models/request_models"
@@ -57,7 +58,7 @@ func (f *FeedbackController) AddFeedback(c *gin.Context) {
 // @Tags Feedback
 // @Param page query int false "Page number" default(1)
 // @Param pageSize query int false "Page size" default(10) minimum(1) maximum(100)
-// @Success 200 {array} db_models.Feedback
+// @Success 200 {array} response_models.FeedbackResponse
 // @Router /feedback/list [get]
 func (f *FeedbackController) ListFeedback(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
@@ -81,5 +82,16 @@ func (f *FeedbackController) ListFeedback(c *gin.Context) {
 		return
 	}
 
-	utils.RespondSuccess(c, feedbacks, "Feedback fetched successfully")
+	var responseFeedbacks []response_models.FeedbackResponse
+	for _, fb := range feedbacks {
+		responseFeedbacks = append(responseFeedbacks, response_models.FeedbackResponse{
+			ID:        fb.ID,
+			UserID:    fb.UserID,
+			Comment:   fb.Comment,
+			Rating:    fb.Rating,
+			CreatedAt: fb.CreatedAt,
+		})
+	}
+
+	utils.RespondSuccess(c, responseFeedbacks, "Feedback fetched successfully")
 }

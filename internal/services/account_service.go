@@ -20,6 +20,7 @@ type AccountServiceInterface interface {
 	VerifyAndConsumeResetToken(resetRequest request_models.ForgotPasswordRequest) (string, error)
 	VerifyOtpToken(request request_models.RequestVerifyOtpToken) error
 	IsUserHaveSubscription(accountID string) (bool, error)
+	GetAllAccounts(ctx context.Context) ([]response_models.AccountResponse, error)
 }
 
 type AccountService struct {
@@ -28,6 +29,26 @@ type AccountService struct {
 	resetStore   mem.ResetTokenStore // inject this
 	resetTTL     time.Duration       // e.g., 1 * time.Hour
 	publicAppURL string
+}
+
+func (a *AccountService) GetAllAccounts(ctx context.Context) ([]response_models.AccountResponse, error) {
+	accounts, err := a.accountRepo.GetAllAccounts(ctx)
+	if err != nil {
+		return nil, utils.ErrDatabaseError
+	}
+
+	var accountResponses []response_models.AccountResponse
+	for _, account := range accounts {
+		accountResponses = append(accountResponses, response_models.AccountResponse{
+			ID:                   account.ID.String(),
+			Name:                 account.Name,
+			Email:                account.Email,
+			Role:                 account.Role,
+			SubscriptionSnapshot: account.SubscriptionSnapshot,
+		})
+	}
+
+	return accountResponses, nil
 }
 
 func (a *AccountService) IsUserHaveSubscription(accountID string) (bool, error) {

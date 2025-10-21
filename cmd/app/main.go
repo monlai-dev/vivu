@@ -227,6 +227,7 @@ func RegisterRoutes(r *gin.Engine,
 	accountGroup.POST("/forgot-password", accountController.ForgotPassword)
 	accountGroup.POST("/verify-otp", accountController.VerifyOtpToken)
 	accountGroup.POST("/reset-password", accountController.ResetPasswordWithOtp)
+	accountGroup.GET("/all", middleware.JWTAuthMiddleware(), accountController.GetAllAccounts)
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
@@ -261,6 +262,7 @@ func RegisterRoutes(r *gin.Engine,
 	paymentGroup.POST("/create-checkout", middleware.JWTAuthMiddleware(), paymentController.CreateCheckoutRequest)
 	paymentGroup.POST("/webhook", paymentController.HandleWebhook)
 	paymentGroup.GET("/plans", paymentController.GetListOfAvailablePlans)
+	paymentGroup.GET("/transaction-history", middleware.JWTAuthMiddleware(), paymentController.GetAllTransactionHistory)
 	paymentGroup.GET("/subscription-details", middleware.JWTAuthMiddleware(), paymentController.GetSubscriptionDetails)
 
 	dashboardGroup := r.Group("/dashboard", middleware.JWTAuthMiddleware())

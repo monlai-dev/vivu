@@ -15,6 +15,34 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/accounts/all": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch a list of all user accounts",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Get all accounts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/accounts/forgot-password": {
             "post": {
                 "description": "Sends a password reset link to the provided email if it exists",
@@ -358,7 +386,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/db_models.Feedback"
+                                "$ref": "#/definitions/response_models.FeedbackResponse"
                             }
                         }
                     }
@@ -726,6 +754,29 @@ const docTemplate = `{
                     "Payments"
                 ],
                 "summary": "Get subscription details for the authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/transaction-history": {
+            "get": {
+                "description": "Retrieve all transaction history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Get all transaction history",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1303,31 +1354,6 @@ const docTemplate = `{
                 }
             }
         },
-        "db_models.Feedback": {
-            "type": "object",
-            "properties": {
-                "comment": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "rating": {
-                    "description": "Rating between 1 and 5",
-                    "type": "integer"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "userID": {
-                    "description": "Reference to the user providing feedback",
-                    "type": "string"
-                }
-            }
-        },
         "request_models.AddDayToJourneyRequest": {
             "type": "object",
             "required": [
@@ -1683,6 +1709,29 @@ const docTemplate = `{
                 "type": "object",
                 "additionalProperties": {
                     "$ref": "#/definitions/response_models.MatrixEdge"
+                }
+            }
+        },
+        "response_models.FeedbackResponse": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },

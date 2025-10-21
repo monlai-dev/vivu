@@ -7,23 +7,6 @@ definitions:
     required:
     - name
     type: object
-  db_models.Feedback:
-    properties:
-      comment:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      rating:
-        description: Rating between 1 and 5
-        type: integer
-      updatedAt:
-        type: string
-      userID:
-        description: Reference to the user providing feedback
-        type: string
-    type: object
   request_models.AddDayToJourneyRequest:
     properties:
       journey_id:
@@ -264,6 +247,21 @@ definitions:
         $ref: '#/definitions/response_models.MatrixEdge'
       type: object
     type: object
+  response_models.FeedbackResponse:
+    properties:
+      comment:
+        type: string
+      created_at:
+        type: integer
+      id:
+        type: string
+      rating:
+        type: integer
+      updated_at:
+        type: integer
+      user_id:
+        type: string
+    type: object
   response_models.JourneyActivityDetail:
     properties:
       activity_type:
@@ -490,6 +488,23 @@ info:
   title: Vivu Travel API
   version: "1.0"
 paths:
+  /accounts/all:
+    get:
+      consumes:
+      - application/json
+      description: Fetch a list of all user accounts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all accounts
+      tags:
+      - Accounts
   /accounts/forgot-password:
     post:
       consumes:
@@ -715,7 +730,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/db_models.Feedback'
+              $ref: '#/definitions/response_models.FeedbackResponse'
             type: array
       summary: List feedback
       tags:
@@ -953,6 +968,21 @@ paths:
       security:
       - BearerAuth: []
       summary: Get subscription details for the authenticated user
+      tags:
+      - Payments
+  /payments/transaction-history:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all transaction history
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Get all transaction history
       tags:
       - Payments
   /pois/create-poi:

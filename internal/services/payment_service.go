@@ -37,12 +37,44 @@ type PaymentService interface {
 	HandleWebhook(c *gin.Context)
 	GetListOfPlans(ctx context.Context) ([]response_models.SubscriptionPlan, error)
 	GetStatusOfSubscription(ctx context.Context, accountID uuid.UUID) (*response_models.SubscriptionStatusResponse, error)
+	GetAllTransactions(ctx context.Context) ([]response_models.TransactionResponse, error)
 }
 
 type paymentService struct {
 	db  *gorm.DB
 	cfg PayOSConfig
 	loc *time.Location
+}
+
+func (p *paymentService) GetAllTransactions(ctx context.Context) ([]response_models.TransactionResponse, error) {
+
+	var transactions []dbm.Transaction
+	if err := p.db.WithContext(ctx).
+		Where("provider = ?", p.cfg.ProviderName).
+		Order("created_at DESC").
+		Find(&transactions).Error; err != nil {
+		return nil, err
+	}
+
+	// Map dbm.Transaction to response_models.TransactionResponse
+	result := make([]response_models.TransactionResponse, len(transactions))
+	for i, txn := range transactions {
+		result[i] = response_models.TransactionResponse{
+			ID:             txn.ID,
+			AccountID:      txn.AccountID,
+			SubscriptionID: txn.SubscriptionID,
+			AmountMinor:    txn.AmountMinor,
+			Currency:       txn.Currency,
+			Status:         string(txn.Status),
+			Provider:       txn.Provider,
+			ProviderTxnID:  txn.ProviderTxnID,
+			AuthorizedAt:   txn.AuthorizedAt,
+			PaidAt:         txn.PaidAt,
+			RefundedAt:     txn.RefundedAt,
+		}
+	}
+
+	return result, nil
 }
 
 func (p *paymentService) GetStatusOfSubscription(ctx context.Context, accountID uuid.UUID) (*response_models.SubscriptionStatusResponse, error) {

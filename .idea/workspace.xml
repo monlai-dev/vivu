@@ -5,16 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3ad3bfdd-1edf-4ef2-93aa-46e3fea960a0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/cmd/fx/feedback_fx/init.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/api/controllers/feedback_controller.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/models/db_models/feedback.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/repositories/feedback_repo.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/services/feedback_service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/app/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/app/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/docs.go" beforeDir="false" afterPath="$PROJECT_DIR$/docs/docs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/swagger.json" beforeDir="false" afterPath="$PROJECT_DIR$/docs/swagger.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/swagger.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/docs/swagger.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/models/request_models/user_input_prompt.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/request_models/user_input_prompt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/models/db_models/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/models/db_models/account.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/repositories/account_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/repositories/account_repository.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/services/account_service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/services/account_service.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
