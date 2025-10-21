@@ -982,6 +982,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Get all transaction history
       tags:
       - Payments

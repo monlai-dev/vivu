@@ -766,6 +766,11 @@ const docTemplate = `{
         },
         "/payments/transaction-history": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieve all transaction history",
                 "consumes": [
                     "application/json"
