@@ -173,7 +173,7 @@ func (p *POIsController) UpdatePoi(c *gin.Context) {
 // @Param page query int false "Page number" default(1)
 // @Param pageSize query int false "Page size" default(5) minimum(1) maximum(100)
 // @Success 200 {array} response_models.POI
-// Router /pois/list-pois [get]
+// @Router /pois/list-pois [get]
 func (p *POIsController) ListPois(c *gin.Context) {
 
 	pageStr := c.DefaultQuery("page", "1")

@@ -923,6 +923,32 @@ paths:
       summary: Delete a POI
       tags:
       - POIs
+  /pois/list-pois:
+    get:
+      description: Fetch a paginated list of Points of Interest (POIs)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response_models.POI'
+            type: array
+      summary: List POIs with pagination
+      tags:
+      - POIs
   /pois/pois-details/{id}:
     get:
       description: Fetch a Point of Interest (POI) by its ID

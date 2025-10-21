@@ -8,9 +8,9 @@ type CheckIn struct {
 	JourneyID uuid.UUID
 	POIID     uuid.UUID
 	Notes     string
-
-	Account Account `gorm:"foreignKey:AccountID"`
-	Journey Journey `gorm:"foreignKey:JourneyID"`
-	POI     POI     `gorm:"foreignKey:POIID"`
-	Photos  []Photo `gorm:"foreignKey:CheckInID"`
+	Stars     int     // 1 to 5
+	Account   Account `gorm:"foreignKey:AccountID"`
+	Journey   Journey `gorm:"foreignKey:JourneyID"`
+	POI       POI     `gorm:"foreignKey:POIID"`
+	Photos    []Photo `gorm:"foreignKey:CheckInID"`
 }

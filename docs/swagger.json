@@ -734,6 +734,44 @@
                 }
             }
         },
+        "/pois/list-pois": {
+            "get": {
+                "description": "Fetch a paginated list of Points of Interest (POIs)",
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "List POIs with pagination",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response_models.POI"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/pois/pois-details/{id}": {
             "get": {
                 "description": "Fetch a Point of Interest (POI) by its ID",
