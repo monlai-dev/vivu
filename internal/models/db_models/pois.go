@@ -8,7 +8,7 @@ type POI struct {
 	Latitude     float64
 	Longitude    float64
 	ProvinceID   uuid.UUID
-	CategoryID   uuid.UUID
+	CategoryID   *uuid.UUID
 	Category     Category `gorm:"foreignKey:CategoryID"`
 	Status       string
 	OpeningHours string

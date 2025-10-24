@@ -7,7 +7,7 @@ type CreatePoiRequest struct {
 	Latitude     float64    `json:"latitude"`
 	Longitude    float64    `json:"longitude"`
 	Category     *uuid.UUID `json:"category"`
-	Province     *uuid.UUID `json:"province"`
+	Province     uuid.UUID  `json:"province"`
 	OpeningHours string     `json:"opening_hours"`
 	ContactInfo  string     `json:"contact_info"`
 	Address      string     `json:"address"`
@@ -21,15 +21,15 @@ type PoiDetails struct {
 }
 
 type UpdatePoiRequest struct {
-	ID           uuid.UUID `json:"id" binding:"required,uuid4"`
-	Name         string    `json:"name"`
-	Latitude     float64   `json:"latitude"`
-	Longitude    float64   `json:"longitude"`
-	Category     uuid.UUID `json:"category"`
-	Province     uuid.UUID `json:"province"`
-	OpeningHours string    `json:"opening_hours"`
-	ContactInfo  string    `json:"contact_info"`
-	Address      string    `json:"address"`
+	ID           uuid.UUID  `json:"id" binding:"required,uuid4"`
+	Name         string     `json:"name"`
+	Latitude     float64    `json:"latitude"`
+	Longitude    float64    `json:"longitude"`
+	Category     *uuid.UUID `json:"category"`
+	Province     uuid.UUID  `json:"province"`
+	OpeningHours string     `json:"opening_hours"`
+	ContactInfo  string     `json:"contact_info"`
+	Address      string     `json:"address"`
 
 	PoiDetails *PoiDetails `json:"poi_details"`
 }
