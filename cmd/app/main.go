@@ -233,8 +233,8 @@ func RegisterRoutes(r *gin.Engine,
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
 	poisgroup.GET("/pois-details/:id", poisController.GetPoiById)
 	poisgroup.POST("/create-poi", poisController.CreatePoi)
-	poisgroup.DELETE("/delete-poi/", poisController.DeletePoi)
-	poisgroup.PUT("/update-poi/", poisController.UpdatePoi)
+	poisgroup.DELETE("/delete-poi", poisController.DeletePoi)
+	poisgroup.PUT("/update-poi", poisController.UpdatePoi)
 	poisgroup.GET("/list-pois", poisController.ListPois)
 
 	tagsGroup := r.Group("/tags")
