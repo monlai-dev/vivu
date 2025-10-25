@@ -24,3 +24,10 @@ type UpdatePoiInActivityRequest struct {
 type AddDayToJourneyRequest struct {
 	JourneyID string `json:"journey_id" binding:"required"`
 }
+
+type UpdateJourneyWindowRequest struct {
+	JourneyID string `json:"journey_id" binding:"required"`
+	// RFC3339 (e.g., "2025-10-10T09:00:00+07:00")
+	Start string `json:"start" binding:"required"`
+	End   string `json:"end" binding:"required"`
+}

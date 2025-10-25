@@ -26,6 +26,15 @@ type JourneyRepository interface {
 	AddPoiToJourneyWithStartEnd(ctx context.Context, journeyId string, poiId string, start time.Time, end *time.Time) error
 	AddDayToJourneyWithDate(ctx context.Context, journeyId string) (uuid.UUID, error)
 	UpdateSelectedPoiInActivityWithGivenTime(ctx context.Context, activityId uuid.UUID, currentPoiId string, startTime, endTime time.Time) error
+	ScaleDaysForJourney(
+		ctx context.Context,
+		journeyId string,
+		start time.Time,
+		end time.Time,
+	) (int, int, error)
+	UpdateJourneyWindow(
+		ctx context.Context, journeyId string, startUnix, endUnix int64,
+	) error
 }
 
 func NewJourneyRepository(db *gorm.DB) JourneyRepository {
@@ -391,6 +400,124 @@ func (r *journeyRepository) ReplaceMaterializedPlan(
 	})
 
 	return outID, err
+}
+
+func (r *journeyRepository) ScaleDaysForJourney(
+	ctx context.Context,
+	journeyId string,
+	start time.Time,
+	end time.Time,
+) (int, int, error) {
+
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		return 0, 0, err
+	}
+
+	// 1) Load existing days (including deleted? No; we only consider live ones)
+	var existing []dbm.JourneyDay
+	if err := tx.
+		Where("journey_id = ?", journeyId).
+		Order("date ASC").
+		Find(&existing).Error; err != nil {
+		tx.Rollback()
+		return 0, 0, err
+	}
+
+	// 2) Build target date set (midnight in vnLoc, inclusive range)
+	startDate := start.In(vnLoc).Truncate(24 * time.Hour)
+	endDate := end.In(vnLoc).Truncate(24 * time.Hour)
+
+	// inclusive day count
+	days := int(endDate.Sub(startDate).Hours()/24) + 1
+	target := make(map[time.Time]struct{}, days)
+	targetOrder := make([]time.Time, 0, days)
+	for i := 0; i < days; i++ {
+		d := startDate.Add(time.Duration(i) * 24 * time.Hour)
+		target[d] = struct{}{}
+		targetOrder = append(targetOrder, d)
+	}
+
+	// index existing by normalized date
+	existingByDate := make(map[time.Time]dbm.JourneyDay, len(existing))
+	for _, d := range existing {
+		key := d.Date.In(vnLoc).Truncate(24 * time.Hour)
+		existingByDate[key] = d
+	}
+
+	// 3) Create missing
+	added := 0
+	for _, d := range targetOrder {
+		if _, ok := existingByDate[d]; ok {
+			continue
+		}
+		newDay := dbm.JourneyDay{
+			JourneyID: uuid.MustParse(journeyId),
+			Date:      d, // midnight in vnLoc
+			// DayNumber filled in the resequencing step
+		}
+		if err := tx.Create(&newDay).Error; err != nil {
+			tx.Rollback()
+			return 0, 0, err
+		}
+		added++
+	}
+
+	// 4) Soft-delete days outside target (cascade soft-delete activities via GORM)
+	removed := 0
+	for _, d := range existing {
+		key := d.Date.In(vnLoc).Truncate(24 * time.Hour)
+		if _, keep := target[key]; !keep {
+			if err := tx.Delete(&d).Error; err != nil {
+				tx.Rollback()
+				return 0, 0, err
+			}
+			removed++
+		}
+	}
+
+	// OPTIONAL: move activities from removed days to closest remaining day instead of deleting
+	// (requires collecting removed days first and reassigning JourneyDayID for their activities)
+	// -- left out for brevity and because soft-delete is safer by default.
+
+	// 5) Resequence day_number by date
+	var after []dbm.JourneyDay
+	if err := tx.
+		Where("journey_id = ?", journeyId).
+		Order("date ASC").
+		Find(&after).Error; err != nil {
+		tx.Rollback()
+		return 0, 0, err
+	}
+	for i := range after {
+		if after[i].DayNumber != i+1 {
+			if err := tx.Model(&after[i]).Update("day_number", i+1).Error; err != nil {
+				tx.Rollback()
+				return 0, 0, err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, 0, err
+	}
+	return added, removed, nil
+}
+
+func (r *journeyRepository) UpdateJourneyWindow(
+	ctx context.Context, journeyId string, startUnix, endUnix int64,
+) error {
+	return r.db.WithContext(ctx).Model(&dbm.Journey{}).
+		Where("id = ?", journeyId).
+		Updates(map[string]interface{}{
+			"start_date": startUnix,
+			"end_date":   endUnix,
+		}).Error
 }
 
 type CreateJourneyInput struct {

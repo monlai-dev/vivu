@@ -200,6 +200,20 @@ definitions:
     - email
     - password
     type: object
+  request_models.UpdateJourneyWindowRequest:
+    properties:
+      end:
+        type: string
+      journey_id:
+        type: string
+      start:
+        description: RFC3339 (e.g., "2025-10-10T09:00:00+07:00")
+        type: string
+    required:
+    - end
+    - journey_id
+    - start
+    type: object
   request_models.UpdatePoiInActivityRequest:
     properties:
       activity_id:
@@ -879,6 +893,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Remove POI from journey
+      tags:
+      - Journey
+  /journeys/update-journey-window:
+    post:
+      consumes:
+      - application/json
+      description: Update the start and end dates of a journey, scaling the journey
+        days accordingly
+      parameters:
+      - description: Journey ID, Start Date, End Date
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request_models.UpdateJourneyWindowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update journey window
       tags:
       - Journey
   /journeys/update-poi-in-activity:

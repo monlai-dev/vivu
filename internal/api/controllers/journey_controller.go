@@ -223,3 +223,38 @@ func (j *JourneyController) AddDayToJourney(c *gin.Context) {
 
 	utils.RespondSuccess(c, gin.H{"new_day_id": newDayID}, "Day added to journey successfully")
 }
+
+// UpdateJourneyWindow godoc
+// @Summary Update journey window
+// @Description Update the start and end dates of a journey, scaling the journey days accordingly
+// @Tags Journey
+// @Accept json
+// @Produce json
+// @Param request body request_models.UpdateJourneyWindowRequest true "Journey ID, Start Date, End Date"
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 500 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /journeys/update-journey-window [post]
+func (j *JourneyController) UpdateJourneyWindow(c *gin.Context) {
+	var req request_models.UpdateJourneyWindowRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.JourneyID == "" {
+		utils.RespondError(c, http.StatusBadRequest, "journey_id, start, end are required (RFC3339)")
+		return
+	}
+
+	id, added, removed, err := j.journeyService.UpdateJourneyWindow(
+		c.Request.Context(), req.JourneyID, req.Start, req.End,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, gin.H{
+		"journey_id":        id,
+		"days_added":        added,
+		"days_removed_soft": removed, // soft-deleted
+		"message":           "Journey days scaled to window",
+	}, "Journey window updated")
+}

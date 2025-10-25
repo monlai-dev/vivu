@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"time"
 	"vivu/internal/models/db_models"
@@ -17,6 +18,9 @@ type JourneyServiceInterface interface {
 	RemovePoiFromJourney(ctx context.Context, journeyId string, poiId string) error
 	AddDayToJourney(ctx context.Context, journeyId string) (uuid.UUID, error)
 	UpdateSelectedPoiInActivity(ctx context.Context, activityId uuid.UUID, currentPoiId string, startTimen, endTime time.Time) error
+	UpdateJourneyWindow(
+		ctx context.Context, journeyId, startRFC3339, endRFC3339 string,
+	) (uuid.UUID, int, int, error)
 }
 
 type JourneyService struct {
@@ -122,4 +126,43 @@ func (j *JourneyService) GetDetailsInfoOfJourneyById(ctx context.Context, journe
 	out := db_models.BuildJourneyDetailResponse(journey)
 
 	return out, nil
+}
+
+func (j *JourneyService) UpdateJourneyWindow(
+	ctx context.Context, journeyId, startRFC3339, endRFC3339 string,
+) (uuid.UUID, int, int, error) {
+
+	j, err := s.journeyRepo.GetDetailsOfJourneyById(ctx, journeyId)
+	if err != nil {
+		return uuid.Nil, 0, 0, utils.ErrDatabaseError
+	}
+	if j == nil {
+		return uuid.Nil, 0, 0, utils.ErrJourneyNotFound
+	}
+
+	start, err := time.Parse(time.RFC3339, startRFC3339)
+	if err != nil {
+		return uuid.Nil, 0, 0, fmt.Errorf("invalid start: %w", err)
+	}
+	end, err := time.Parse(time.RFC3339, endRFC3339)
+	if err != nil {
+		return uuid.Nil, 0, 0, fmt.Errorf("invalid end: %w", err)
+	}
+	start = start.In(vnLoc)
+	end = end.In(vnLoc)
+	if end.Before(start) {
+		return uuid.Nil, 0, 0, fmt.Errorf("end must be after or equal to start")
+	}
+
+	added, removed, err := j.journeyRepo.ScaleDaysForJourney(ctx, journeyId, start, end)
+	if err != nil {
+		return uuid.Nil, 0, 0, utils.ErrDatabaseError
+	}
+
+	// Persist the canonical window on Journey (epoch seconds)
+	if err := j.journeyRepo.UpdateJourneyWindow(ctx, journeyId, start.Unix(), end.Unix()); err != nil {
+		return uuid.Nil, 0, 0, utils.ErrDatabaseError
+	}
+
+	return j.ID, added, removed, nil
 }
