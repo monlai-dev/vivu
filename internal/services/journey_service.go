@@ -132,11 +132,11 @@ func (j *JourneyService) UpdateJourneyWindow(
 	ctx context.Context, journeyId, startRFC3339, endRFC3339 string,
 ) (uuid.UUID, int, int, error) {
 
-	j, err := s.journeyRepo.GetDetailsOfJourneyById(ctx, journeyId)
+	result, err := j.journeyRepo.GetDetailsOfJourneyById(ctx, journeyId)
 	if err != nil {
 		return uuid.Nil, 0, 0, utils.ErrDatabaseError
 	}
-	if j == nil {
+	if result == nil {
 		return uuid.Nil, 0, 0, utils.ErrJourneyNotFound
 	}
 
@@ -164,5 +164,5 @@ func (j *JourneyService) UpdateJourneyWindow(
 		return uuid.Nil, 0, 0, utils.ErrDatabaseError
 	}
 
-	return j.ID, added, removed, nil
+	return result.ID, added, removed, nil
 }
