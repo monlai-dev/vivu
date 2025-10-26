@@ -228,6 +228,7 @@ func RegisterRoutes(r *gin.Engine,
 	accountGroup.POST("/verify-otp", accountController.VerifyOtpToken)
 	accountGroup.POST("/reset-password", accountController.ResetPasswordWithOtp)
 	accountGroup.GET("/all", middleware.JWTAuthMiddleware(), accountController.GetAllAccounts)
+	accountGroup.GET("/profile", middleware.JWTAuthMiddleware(), accountController.GetProfileInfo)
 
 	poisgroup := r.Group("/pois")
 	poisgroup.GET("/provinces/:provinceId", poisController.GetPoisByProvince)
@@ -236,6 +237,7 @@ func RegisterRoutes(r *gin.Engine,
 	poisgroup.DELETE("/delete-poi", poisController.DeletePoi)
 	poisgroup.PUT("/update-poi", poisController.UpdatePoi)
 	poisgroup.GET("/list-pois", poisController.ListPois)
+	poisgroup.GET("/search-poi-by-name-and-province", poisController.SearchPoiByNameAndProvince)
 
 	tagsGroup := r.Group("/tags")
 	tagsGroup.GET("/list-all", tagsController.ListAllTagsHandler)

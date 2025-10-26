@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 	"vivu/internal/models/request_models"
 	"vivu/internal/services"
@@ -168,4 +169,33 @@ func (a *AccountController) GetAllAccounts(c *gin.Context) {
 	}
 
 	utils.RespondSuccess(c, accounts, "Accounts fetched successfully")
+}
+
+// GetProfileInfo godoc
+// @Summary Get profile information
+// @Description Fetch the profile information of the authenticated user
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Success 200 {object} utils.APIResponse
+// @Security BearerAuth
+// @Router /accounts/profile [get]
+func (a *AccountController) GetProfileInfo(c *gin.Context) {
+
+	userid := c.GetString("user_id")
+
+	if userid == "" {
+		utils.RespondError(c, http.StatusBadRequest, "user_id is required")
+		return
+	}
+
+	userId, _ := uuid.Parse(userid)
+
+	profile, err := a.accountService.GetProfileInfo(c.Request.Context(), userId.String())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, profile, "Profile info fetched successfully")
 }

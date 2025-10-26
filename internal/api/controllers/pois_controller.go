@@ -199,3 +199,42 @@ func (p *POIsController) ListPois(c *gin.Context) {
 
 	utils.RespondSuccess(c, pois, "POIs fetched successfully")
 }
+
+// SearchPoiByNameAndProvince godoc
+// @Summary Search POIs by name and province
+// @Description Search for Points of Interest (POIs) by name and province ID with pagination
+// @Tags POIs
+// @Param name query string true "POI name"
+// @Param provinceId query string true "Province ID"
+// @Param page query int false "Page number" default(1)
+// @Param pageSize query int false "Page size" default(5) minimum(1) maximum(100)
+// @Success 200 {array} response_models.POI
+// @Failure 400 {object} utils.APIResponse
+// @Router /pois/search-poi-by-name-and-province [get]
+func (p *POIsController) SearchPoiByNameAndProvince(c *gin.Context) {
+	name := c.Query("name")
+	provinceId := c.Query("provinceId")
+
+	pageStr := c.DefaultQuery("page", "1")
+	pageSizeStr := c.DefaultQuery("pageSize", "5")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid page number")
+		return
+	}
+
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 || pageSize > 100 {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid page size (must be 1-100)")
+		return
+	}
+
+	pois, err := p.poiService.SearchPoiByNameAndProvince(name, provinceId, page, pageSize, c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err)
+		return
+	}
+
+	utils.RespondSuccess(c, pois, "POIs fetched successfully")
+}

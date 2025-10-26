@@ -23,10 +23,34 @@ type POIRepository interface {
 	SearchPOIsByName(ctx context.Context, name string) ([]*db_models.POI, error)
 	SearchPOIsByKeywords(ctx context.Context, keywords []string) ([]*db_models.POI, error)
 	FindPOIsByLocationNames(ctx context.Context, locations []string) ([]*db_models.POI, error)
+
+	SearchPoiByNameAndProvince(ctx context.Context, name string, provinceID string) ([]*db_models.POI, error)
 }
 
 type poiRepository struct {
 	db *gorm.DB
+}
+
+func (r *poiRepository) SearchPoiByNameAndProvince(ctx context.Context, name string, provinceID string) ([]*db_models.POI, error) {
+
+	var pois []*db_models.POI
+
+	// Clean and prepare search term
+	searchTerm := "%" + strings.ToLower(strings.TrimSpace(name)) + "%"
+
+	err := r.db.WithContext(ctx).
+		Preload("Tags").
+		Preload("Category").
+		Preload("Province").
+		Where("LOWER(name) LIKE ? AND province_id = ?", searchTerm, provinceID).
+		Limit(10).
+		Find(&pois).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to search POIs by name and province: %w", err)
+	}
+
+	return pois, nil
 }
 
 func (r *poiRepository) ListPoisByPoisId(ctx context.Context, ids []string) ([]*db_models.POI, error) {

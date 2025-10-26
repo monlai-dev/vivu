@@ -21,6 +21,7 @@ type AccountServiceInterface interface {
 	VerifyOtpToken(request request_models.RequestVerifyOtpToken) error
 	IsUserHaveSubscription(accountID string) (bool, error)
 	GetAllAccounts(ctx context.Context) ([]response_models.AccountResponse, error)
+	GetProfileInfo(ctx context.Context, accountID string) (response_models.AccountResponse, error)
 }
 
 type AccountService struct {
@@ -29,6 +30,25 @@ type AccountService struct {
 	resetStore   mem.ResetTokenStore // inject this
 	resetTTL     time.Duration       // e.g., 1 * time.Hour
 	publicAppURL string
+}
+
+func (a *AccountService) GetProfileInfo(ctx context.Context, accountID string) (response_models.AccountResponse, error) {
+
+	account, err := a.accountRepo.FindById(ctx, accountID)
+	if err != nil {
+		return response_models.AccountResponse{}, utils.ErrDatabaseError
+	}
+	if account == nil {
+		return response_models.AccountResponse{}, utils.ErrAccountNotFound
+	}
+
+	return response_models.AccountResponse{
+		ID:                   account.ID.String(),
+		Name:                 account.Name,
+		Email:                account.Email,
+		Role:                 account.Role,
+		SubscriptionSnapshot: account.SubscriptionSnapshot,
+	}, nil
 }
 
 func (a *AccountService) GetAllAccounts(ctx context.Context) ([]response_models.AccountResponse, error) {

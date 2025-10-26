@@ -16,10 +16,29 @@ type AccountRepository interface {
 	UpdateAccount(account *db_models.Account, ctx context.Context) error
 	UpdatePasswordByEmail(ctx context.Context, email, newPasswordHash string) error
 	GetAllAccounts(ctx context.Context) ([]db_models.Account, error)
+	GetProfileInfo(ctx context.Context, accountId string) (*db_models.Account, error)
 }
 
 type accountRepository struct {
 	db *gorm.DB
+}
+
+func (a *accountRepository) GetProfileInfo(ctx context.Context, accountId string) (*db_models.Account, error) {
+
+	var account db_models.Account
+	err := a.db.WithContext(ctx).
+		Preload("Subs").
+		First(&account, "id = ?", accountId).
+		Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &account, nil
 }
 
 func (a *accountRepository) GetAllAccounts(ctx context.Context) ([]db_models.Account, error) {

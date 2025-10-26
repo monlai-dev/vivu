@@ -18,10 +18,51 @@ type POIServiceInterface interface {
 	UpdatePoi(pois request_models.UpdatePoiRequest, ctx context.Context) error
 	DeletePoi(id uuid.UUID, ctx context.Context) error
 	ListPois(ctx context.Context, page, pageSize int) ([]db_models.POI, error)
+	SearchPoiByNameAndProvince(name, provinceID string, page, pageSize int, ctx context.Context) ([]response_models.POI, error)
 }
 
 type PoiService struct {
 	poiRepository repositories.POIRepository
+}
+
+func (p *PoiService) SearchPoiByNameAndProvince(name, provinceID string, page, pageSize int, ctx context.Context) ([]response_models.POI, error) {
+
+	pois, err := p.poiRepository.SearchPoiByNameAndProvince(ctx, name, provinceID)
+	if err != nil {
+		log.Printf("Error searching POIs: %v", err)
+		return nil, utils.ErrDatabaseError
+	}
+
+	if len(pois) == 0 {
+		return []response_models.POI{}, utils.ErrPOINotFound
+	}
+
+	poiResponses := make([]response_models.POI, 0, len(pois))
+
+	for _, poi := range pois {
+		var poiDetails *response_models.PoiDetails
+		if poi.Details.ID != uuid.Nil {
+			poiDetails = &response_models.PoiDetails{
+				ID:          poi.Details.ID.String(),
+				Description: poi.Description,
+				Image:       poi.Details.Images,
+			}
+		}
+
+		poiResponses = append(poiResponses, response_models.POI{
+			ID:           poi.ID.String(),
+			Name:         poi.Name,
+			Latitude:     poi.Latitude,
+			Longitude:    poi.Longitude,
+			Category:     poi.Category.Name,
+			OpeningHours: poi.OpeningHours,
+			ContactInfo:  poi.ContactInfo,
+			Address:      poi.Address,
+			PoiDetails:   poiDetails,
+		})
+	}
+
+	return poiResponses, nil
 }
 
 func (p *PoiService) ListPois(ctx context.Context, page, pageSize int) ([]db_models.POI, error) {

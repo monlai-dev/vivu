@@ -325,6 +325,8 @@ definitions:
         type: boolean
       is_shared:
         type: boolean
+      location:
+        type: string
       start_date:
         description: RFC3339 date/time
         type: string
@@ -565,6 +567,23 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIResponse'
       summary: Login to an account
+      tags:
+      - Accounts
+  /accounts/profile:
+    get:
+      consumes:
+      - application/json
+      description: Fetch the profile information of the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get profile information
       tags:
       - Accounts
   /accounts/register:
@@ -1168,6 +1187,47 @@ paths:
           schema:
             $ref: '#/definitions/utils.APIResponse'
       summary: Get POIs by Province
+      tags:
+      - POIs
+  /pois/search-poi-by-name-and-province:
+    get:
+      description: Search for Points of Interest (POIs) by name and province ID with
+        pagination
+      parameters:
+      - description: POI name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Province ID
+        in: query
+        name: provinceId
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response_models.POI'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Search POIs by name and province
       tags:
       - POIs
   /pois/update-poi:

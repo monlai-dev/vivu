@@ -117,6 +117,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/accounts/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch the profile information of the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Get profile information",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/accounts/register": {
             "post": {
                 "description": "Create a new user account",
@@ -1049,6 +1077,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/pois/search-poi-by-name-and-province": {
+            "get": {
+                "description": "Search for Points of Interest (POIs) by name and province ID with pagination",
+                "tags": [
+                    "POIs"
+                ],
+                "summary": "Search POIs by name and province",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "POI name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Province ID",
+                        "name": "provinceId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response_models.POI"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/pois/update-poi": {
             "put": {
                 "security": [
@@ -1882,6 +1968,9 @@ const docTemplate = `{
                 },
                 "is_shared": {
                     "type": "boolean"
+                },
+                "location": {
+                    "type": "string"
                 },
                 "start_date": {
                     "description": "RFC3339 date/time",
