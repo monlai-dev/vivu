@@ -13,7 +13,7 @@ type JourneyDetailResponse struct {
 	DurationDays int       `json:"duration_days"` // computed (inclusive or exclusive—your call; see mapper)
 	IsShared     bool      `json:"is_shared"`
 	IsCompleted  bool      `json:"is_completed"`
-
+	Location     string    `json:"location"`
 	// Quick stats
 	TotalDays       int `json:"total_days"`
 	TotalActivities int `json:"total_activities"`

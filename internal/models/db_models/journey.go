@@ -29,12 +29,26 @@ func toRFC3339(sec int64) string {
 	return time.Unix(sec, 0).UTC().Format(time.RFC3339)
 }
 
+func toRFC3339Ptr(sec *int64) string {
+	if sec == nil || *sec == 0 {
+		return ""
+	}
+	return time.Unix(*sec, 0).UTC().Format(time.RFC3339)
+}
+
 // formatTime converts time.Time to RFC3339 string.
 func formatTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
 	return t.UTC().Format(time.RFC3339)
+}
+
+func formatTimeIfNotNil(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return formatTime(*t)
 }
 
 func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
@@ -46,21 +60,23 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 		ID:          j.ID,
 		Title:       j.Title,
 		StartDate:   toRFC3339(j.StartDate),
-		EndDate:     toRFC3339(*j.EndDate),
+		EndDate:     toRFC3339Ptr(j.EndDate),
 		IsShared:    j.IsShared,
 		IsCompleted: j.IsCompleted,
+		Location:    j.Location,
 	}
 
-	// Duration (inclusive days). If you prefer exclusive, remove the +1 when >0.
-	if j.StartDate > 0 && *j.EndDate >= j.StartDate {
-		start := time.Unix(j.StartDate, 0).UTC().Truncate(24 * time.Hour)
-		end := time.Unix(*j.EndDate, 0).UTC().Truncate(24 * time.Hour)
-		out.DurationDays = int(end.Sub(start).Hours()/24) + 1
+	// Duration (inclusive days)
+	if j.StartDate > 0 && j.EndDate != nil && *j.EndDate >= j.StartDate {
+		start := time.Unix(j.StartDate, 0).UTC()
+		end := time.Unix(*j.EndDate, 0).UTC()
+
+		startD := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+		endD := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
+		out.DurationDays = int(endD.Sub(startD).Hours()/24) + 1
 	}
 
 	out.TotalDays = len(j.Days)
-
-	// Days & activities
 	out.Days = make([]resp.JourneyDayResponse, 0, len(j.Days))
 	totalActivities := 0
 
@@ -85,7 +101,6 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 				Notes:        a.Notes,
 			}
 
-			// POI summary (only if preloaded)
 			if a.SelectedPOI.ID != uuid.Nil {
 				ad.SelectedPOI = &resp.POISummary{
 					ID:        a.SelectedPOI.ID,
@@ -106,11 +121,4 @@ func BuildJourneyDetailResponse(j *Journey) *resp.JourneyDetailResponse {
 
 	out.TotalActivities = totalActivities
 	return out
-}
-
-func formatTimeIfNotNil(t *time.Time) string {
-	if t == nil {
-		return ""
-	}
-	return formatTime(*t)
 }

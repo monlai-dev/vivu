@@ -210,7 +210,6 @@ func (r *journeyRepository) RemovePoiFromJourneyWithId(
 }
 
 func (r *journeyRepository) GetDetailsOfJourneyById(ctx context.Context, journeyId string) (*dbm.Journey, error) {
-
 	var journey dbm.Journey
 	err := r.db.WithContext(ctx).
 		Where("id = ?", journeyId).
@@ -220,24 +219,46 @@ func (r *journeyRepository) GetDetailsOfJourneyById(ctx context.Context, journey
 		First(&journey).Error
 
 	if err != nil {
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-
 	return &journey, nil
 }
 
 var vnLoc = func() *time.Location {
-	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
-	if err != nil {
-		// Fallback but you really want the named tz for DST/offset correctness (VN is fixed +07)
-		return time.FixedZone("ICT", 7*60*60)
+	if l, err := time.LoadLocation("Asia/Ho_Chi_Minh"); err == nil {
+		return l
 	}
-	return loc
+	return time.FixedZone("ICT", 7*3600)
 }()
+
+// midnightVN returns 00:00:00 in vnLoc for the calendar date of t (evaluated in vnLoc)
+func midnightVN(t time.Time) time.Time {
+	l := t.In(vnLoc)
+	return time.Date(l.Year(), l.Month(), l.Day(), 0, 0, 0, 0, vnLoc)
+}
+
+func absDuration(d time.Duration) time.Duration {
+	if d < 0 {
+		return -d
+	}
+	return d
+}
+
+// nearestDayVN picks the candidate midnight date closest to ts's date (in vnLoc)
+func nearestDayVN(ts time.Time, candidates []time.Time) time.Time {
+	t0 := midnightVN(ts)
+	best := candidates[0]
+	bestDiff := absDuration(t0.Sub(best))
+	for _, c := range candidates[1:] {
+		if diff := absDuration(t0.Sub(c)); diff < bestDiff {
+			best, bestDiff = c, diff
+		}
+	}
+	return best
+}
 
 func (r *journeyRepository) GetListOfJourneyByUserId(ctx context.Context, page int, pagesize int, userId string) ([]dbm.Journey, error) {
 
@@ -411,30 +432,29 @@ func (r *journeyRepository) ScaleDaysForJourney(
 
 	tx := r.db.WithContext(ctx).Begin()
 	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
 		}
 	}()
 	if err := tx.Error; err != nil {
 		return 0, 0, err
 	}
 
-	// 1) Load existing days (including deleted? No; we only consider live ones)
+	// 1) Load existing live days
 	var existing []dbm.JourneyDay
 	if err := tx.
 		Where("journey_id = ?", journeyId).
 		Order("date ASC").
 		Find(&existing).Error; err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return 0, 0, err
 	}
 
-	// 2) Build target date set (midnight in vnLoc, inclusive range)
-	startDate := start.In(vnLoc).Truncate(24 * time.Hour)
-	endDate := end.In(vnLoc).Truncate(24 * time.Hour)
+	// 2) Define target day set (midnight vnLoc)
+	startDate := midnightVN(start)
+	endDate := midnightVN(end)
 
-	// inclusive day count
-	days := int(endDate.Sub(startDate).Hours()/24) + 1
+	days := int(endDate.Sub(startDate).Hours()/24) + 1 // inclusive
 	target := make(map[time.Time]struct{}, days)
 	targetOrder := make([]time.Time, 0, days)
 	for i := 0; i < days; i++ {
@@ -443,14 +463,14 @@ func (r *journeyRepository) ScaleDaysForJourney(
 		targetOrder = append(targetOrder, d)
 	}
 
-	// index existing by normalized date
+	// Index existing by normalized date
 	existingByDate := make(map[time.Time]dbm.JourneyDay, len(existing))
 	for _, d := range existing {
-		key := d.Date.In(vnLoc).Truncate(24 * time.Hour)
+		key := midnightVN(d.Date)
 		existingByDate[key] = d
 	}
 
-	// 3) Create missing
+	// 3) Create missing target days
 	added := 0
 	for _, d := range targetOrder {
 		if _, ok := existingByDate[d]; ok {
@@ -458,32 +478,111 @@ func (r *journeyRepository) ScaleDaysForJourney(
 		}
 		newDay := dbm.JourneyDay{
 			JourneyID: uuid.MustParse(journeyId),
-			Date:      d, // midnight in vnLoc
-			// DayNumber filled in the resequencing step
+			Date:      d, // midnight vnLoc
 		}
 		if err := tx.Create(&newDay).Error; err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return 0, 0, err
 		}
 		added++
 	}
 
-	// 4) Soft-delete days outside target (cascade soft-delete activities via GORM)
-	removed := 0
+	// 4) Identify removed days (do NOT delete yet)
+	removedDays := make([]dbm.JourneyDay, 0)
 	for _, d := range existing {
-		key := d.Date.In(vnLoc).Truncate(24 * time.Hour)
+		key := midnightVN(d.Date)
 		if _, keep := target[key]; !keep {
+			removedDays = append(removedDays, d)
+		}
+	}
+
+	// 4.1) Reassign activities from removed days to nearest remaining day
+	removed := 0
+	if len(removedDays) > 0 && len(targetOrder) > 0 {
+		// Build actual remaining rows for the target window (we need IDs)
+		var remainingRows []dbm.JourneyDay
+		if err := tx.
+			Where("journey_id = ?", journeyId).
+			Where("date >= ? AND date <= ?", startDate, endDate).
+			Order("date ASC").
+			Find(&remainingRows).Error; err != nil {
+			_ = tx.Rollback()
+			return 0, 0, err
+		}
+		if len(remainingRows) == 0 {
+			// Should never happen; defensive
+			_ = tx.Rollback()
+			return 0, 0, errors.New("no remaining days after scaling")
+		}
+
+		// Map midnight date -> remaining row
+		remByDate := make(map[time.Time]dbm.JourneyDay, len(remainingRows))
+		remainingDates := make([]time.Time, 0, len(remainingRows))
+		for _, rd := range remainingRows {
+			mn := midnightVN(rd.Date)
+			remByDate[mn] = rd
+			remainingDates = append(remainingDates, mn)
+		}
+
+		// Load all activities of removed days
+		removedIDs := make([]uuid.UUID, 0, len(removedDays))
+		rmByID := make(map[uuid.UUID]dbm.JourneyDay, len(removedDays))
+		for _, d := range removedDays {
+			removedIDs = append(removedIDs, d.ID)
+			rmByID[d.ID] = d
+		}
+
+		var acts []dbm.JourneyActivity
+		if err := tx.Where("journey_day_id IN ?", removedIDs).Find(&acts).Error; err != nil {
+			_ = tx.Rollback()
+			return 0, 0, err
+		}
+
+		// Reassign each activity
+		for i := range acts {
+			srcDay := rmByID[acts[i].JourneyDayID]
+			targetDate := nearestDayVN(srcDay.Date, remainingDates)
+			destRow, ok := remByDate[targetDate]
+			if !ok {
+				// Fallback (defensive)
+				destRow = remainingRows[0]
+			}
+
+			// Preserve clock time, swap the date to targetDate (in vnLoc)
+			tt := acts[i].Time.In(vnLoc)
+			newTime := time.Date(
+				targetDate.Year(), targetDate.Month(), targetDate.Day(),
+				tt.Hour(), tt.Minute(), tt.Second(), tt.Nanosecond(), vnLoc,
+			)
+			var newEnd *time.Time
+			if acts[i].EndTime != nil {
+				et := acts[i].EndTime.In(vnLoc)
+				tmp := time.Date(
+					targetDate.Year(), targetDate.Month(), targetDate.Day(),
+					et.Hour(), et.Minute(), et.Second(), et.Nanosecond(), vnLoc,
+				)
+				newEnd = &tmp
+			}
+
+			if err := tx.Model(&acts[i]).Updates(map[string]any{
+				"journey_day_id": destRow.ID,
+				"time":           newTime,
+				"end_time":       newEnd,
+			}).Error; err != nil {
+				_ = tx.Rollback()
+				return 0, 0, err
+			}
+		}
+
+		// Now safe to soft-delete removed days
+		for _, d := range removedDays {
 			if err := tx.Delete(&d).Error; err != nil {
-				tx.Rollback()
+				_ = tx.Rollback()
 				return 0, 0, err
 			}
 			removed++
 		}
 	}
-
-	// OPTIONAL: move activities from removed days to closest remaining day instead of deleting
-	// (requires collecting removed days first and reassigning JourneyDayID for their activities)
-	// -- left out for brevity and because soft-delete is safer by default.
 
 	// 5) Resequence day_number by date
 	var after []dbm.JourneyDay
@@ -491,13 +590,14 @@ func (r *journeyRepository) ScaleDaysForJourney(
 		Where("journey_id = ?", journeyId).
 		Order("date ASC").
 		Find(&after).Error; err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return 0, 0, err
 	}
 	for i := range after {
-		if after[i].DayNumber != i+1 {
-			if err := tx.Model(&after[i]).Update("day_number", i+1).Error; err != nil {
-				tx.Rollback()
+		want := i + 1
+		if after[i].DayNumber != want {
+			if err := tx.Model(&after[i]).Update("day_number", want).Error; err != nil {
+				_ = tx.Rollback()
 				return 0, 0, err
 			}
 		}
