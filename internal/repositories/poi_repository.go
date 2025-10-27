@@ -42,8 +42,8 @@ func (r *poiRepository) SearchPoiByNameAndProvince(ctx context.Context, name str
 		Preload("Tags").
 		Preload("Category").
 		Preload("Province").
-		Where("LOWER(name) LIKE ? AND province_id = ?", searchTerm, provinceID).
-		Limit(10).
+		Where("LOWER(name) LIKE ?", searchTerm).
+		Limit(50).
 		Find(&pois).Error
 
 	if err != nil {

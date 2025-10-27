@@ -1199,11 +1199,6 @@ paths:
         name: name
         required: true
         type: string
-      - description: Province ID
-        in: query
-        name: provinceId
-        required: true
-        type: string
       - default: 1
         description: Page number
         in: query

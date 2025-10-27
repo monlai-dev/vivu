@@ -1093,13 +1093,6 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Province ID",
-                        "name": "provinceId",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
                         "type": "integer",
                         "default": 1,
                         "description": "Page number",

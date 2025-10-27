@@ -205,7 +205,6 @@ func (p *POIsController) ListPois(c *gin.Context) {
 // @Description Search for Points of Interest (POIs) by name and province ID with pagination
 // @Tags POIs
 // @Param name query string true "POI name"
-// @Param provinceId query string true "Province ID"
 // @Param page query int false "Page number" default(1)
 // @Param pageSize query int false "Page size" default(5) minimum(1) maximum(100)
 // @Success 200 {array} response_models.POI
@@ -213,7 +212,7 @@ func (p *POIsController) ListPois(c *gin.Context) {
 // @Router /pois/search-poi-by-name-and-province [get]
 func (p *POIsController) SearchPoiByNameAndProvince(c *gin.Context) {
 	name := c.Query("name")
-	provinceId := c.Query("provinceId")
+	//provinceId := c.Query("provinceId")
 
 	pageStr := c.DefaultQuery("page", "1")
 	pageSizeStr := c.DefaultQuery("pageSize", "5")
@@ -230,7 +229,7 @@ func (p *POIsController) SearchPoiByNameAndProvince(c *gin.Context) {
 		return
 	}
 
-	pois, err := p.poiService.SearchPoiByNameAndProvince(name, provinceId, page, pageSize, c.Request.Context())
+	pois, err := p.poiService.SearchPoiByNameAndProvince(name, "", page, pageSize, c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err)
 		return
