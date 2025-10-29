@@ -34,7 +34,7 @@ func (p *PoiService) SearchPoiByNameAndProvince(name, provinceID string, page, p
 	}
 
 	if len(pois) == 0 {
-		return []response_models.POI{}, utils.ErrPOINotFound
+		return []response_models.POI{}, nil
 	}
 
 	poiResponses := make([]response_models.POI, 0, len(pois))
