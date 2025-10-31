@@ -198,7 +198,7 @@ func (p *PoiService) GetPoisByProvince(province string, page, pageSize int, ctx 
 	}
 
 	if len(pois) == 0 {
-		return []response_models.POI{}, utils.ErrPOINotFound
+		return []response_models.POI{}, nil
 	}
 
 	poiResponses := make([]response_models.POI, 0, len(pois))
